@@ -1,0 +1,14 @@
+PROVIDE ( gpio_output_set = 0x00945424 );
+PROVIDE ( gpio_input_get = 0x0094544c );
+PROVIDE ( gpio_configure_pin = 0x0094579c );
+PROVIDE ( gpio_configure_pulltype = 0x00945760 );
+PROVIDE ( gpio_configure_mux = 0x0094572c );
+PROVIDE ( gpio_set_pin_high = 0x009457d4 );
+PROVIDE ( gpio_set_pin_low = 0x009457f0 );
+PROVIDE ( gpio_get_pin_state = 0x0094580c );
+PROVIDE ( gpio_register_pin_interrupt = 0x00945824 );
+PROVIDE ( gpio_deregister_pin_interrupt = 0x00945864 );
+PROVIDE ( gpio_set_interrupt_mode = 0x009458b8 );
+PROVIDE ( gpio_arm_interrupt = 0x00945918 );
+PROVIDE ( gpio_configure_padstrength = 0x009459e8);
+PROVIDE ( malloc_arena_default_block = 0x0042ad88 );
