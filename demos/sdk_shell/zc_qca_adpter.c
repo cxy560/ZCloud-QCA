@@ -939,9 +939,9 @@ void QC_SetNetwork()
         
         qcom_op_set_mode(QCOM_WLAN_DEV_MODE_STATION);
 
-        qcom_sec_set_passphrase("cxylcj88");//(char*)g_struQcStaInfo.u8Password);//("2882135be2bb");//
+        qcom_sec_set_passphrase((char*)g_struQcStaInfo.u8Password);//("2882135be2bb");//
         
-        qcom_sta_connect_with_scan("TP-LINK_baoli");(char*)g_struQcStaInfo.u8Ssid);//("InFocus M810t");
+        qcom_sta_connect_with_scan((char*)g_struQcStaInfo.u8Ssid);//("InFocus M810t");
         qcom_thread_msleep(5000);
 
         qcom_get_state(&wifi_state);
