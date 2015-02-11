@@ -18,6 +18,8 @@
 #include <qcom_wlan.h>
 #include <qcom_system.h>
 #include <qca_sniffer.h>
+#include <qcom_internal.h>
+
 
 extern PTC_ProtocolCon  g_struProtocolController;
 extern A_UINT32 _inet_addr(A_CHAR *str);
@@ -71,6 +73,7 @@ extern int qca_partition_tbl_base;
 extern int qca_partition_entries[4];
 extern void _ota_nvram_write_data(int partition, unsigned int offset, unsigned char *buf, int size);
 extern void _ota_nvram_read_data(int partition, unsigned int offset, unsigned char *buf, int size);
+extern void _ota_nvram_write_partition_magicword(int partition);
 
 s32 g_s32StorePartition = 0;//1024 use 4 partition, 512 use 2 partition
 u32 g_u32CloudIp = 0;
@@ -263,16 +266,7 @@ void QC_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
 *************************************************/
 u32 QC_FirmwareUpdateFinish(u32 u32TotalLen)
 {
-    int retval;
-   // retval = hfupdate_complete(HFUPDATE_SW, u32TotalLen);
-    if (ZC_RET_OK == retval)
-    {
-        return ZC_RET_OK;
-    }
-    else
-    {
-        return ZC_RET_ERROR;    
-    }
+    _ota_nvram_write_partition_magicword(g_s32StorePartition);
 }
 
 
@@ -286,19 +280,43 @@ u32 QC_FirmwareUpdateFinish(u32 u32TotalLen)
 *************************************************/
 u32 QC_FirmwareUpdate(u8 *pu8FileData, u32 u32Offset, u32 u32DataLen)
 {
-    int retval;
+    u32 u32EraseOffset;
+    u32 u32HeadLen;
+    u32 u32WritLen = 0;
+    u32 u32DataStartOffset = 0;
+    u32 u32FlashStartOffset = 0;
+
+    u32HeadLen = 40;//sizeof(QCA_OTA_IMAGE_HDR_t);
+
+    /*first erase partition, but not to erase last sector, last sector is sta store infor*/
+    u32EraseOffset = (0x40000 - sizeof(g_struQcStaInfo)) & 0xFFFFF000;
     if (0 == u32Offset)
     {
-      //  hfupdate_start(HFUPDATE_SW);
+        qcom_nvram_erase(qca_partition_entries[g_s32StorePartition], u32EraseOffset);
     }
-    
-   // retval = hfupdate_write_file(HFUPDATE_SW, u32Offset, (char *)pu8FileData, u32DataLen); 
-    if (retval < 0)
+
+    if ((u32Offset + u32DataLen) <= u32HeadLen)
     {
-        return ZC_RET_ERROR;
+        return ZC_RET_OK;
     }
-    
+    else if (((u32Offset + u32DataLen) > u32HeadLen) && (u32Offset < u32HeadLen))
+    {
+        u32WritLen =  u32DataLen - (u32HeadLen - u32Offset);  
+        u32DataStartOffset = u32HeadLen - u32Offset;
+        u32FlashStartOffset = 0;
+    }
+    else
+    {
+        u32WritLen = u32DataLen;  
+        u32DataStartOffset = 0;
+        u32FlashStartOffset = (u32Offset - u32HeadLen);
+    }
+
+    //offset need add a magicflag size
+    _ota_nvram_write_data(g_s32StorePartition, u32FlashStartOffset + 4, pu8FileData + u32DataStartOffset, u32WritLen);
+
     return ZC_RET_OK;
+    
 }
 /*************************************************
 * Function: QC_SendDataToMoudle
@@ -874,14 +892,16 @@ void QC_GetDhcp()
     A_UINT32 submask = 0xFFFFFF00;
     A_UINT32 gw = 0;
 
-    u32 i;
 
     qcom_ip_address_set(ip, submask, gw);
 
-    /* dhcp */
-    qcom_dhcpc_enable(1);
 
-    for (i = 0; i < 10; i++) {
+    while(1)
+    {
+        QC_CloudRecvfunc();
+        /* dhcp */
+        qcom_dhcpc_enable(1);
+
         qcom_thread_msleep(5000);
 
         qcom_ip_address_get(&ip, &submask, &gw);
@@ -915,11 +935,13 @@ void QC_SetNetwork()
     wifi_state = 0;
     while(wifi_state != 4)
     {
+        QC_CloudRecvfunc();
+        
         qcom_op_set_mode(QCOM_WLAN_DEV_MODE_STATION);
 
-        qcom_sec_set_passphrase((char*)g_struQcStaInfo.u8Password);
+        qcom_sec_set_passphrase("cxylcj88");//(char*)g_struQcStaInfo.u8Password);//("2882135be2bb");//
         
-        qcom_sta_connect_with_scan((char*)g_struQcStaInfo.u8Ssid);
+        qcom_sta_connect_with_scan("TP-LINK_baoli");(char*)g_struQcStaInfo.u8Ssid);//("InFocus M810t");
         qcom_thread_msleep(5000);
 
         qcom_get_state(&wifi_state);
@@ -927,10 +949,10 @@ void QC_SetNetwork()
         {
             QC_GetDhcp();   
             qcom_dnsc_enable(1);
-            qcom_thread_msleep(5000);
 
             while(0 == g_u32CloudIp)
             {
+                QC_CloudRecvfunc();
                 retval = zc_gethostbyname((A_CHAR *)"test.ablecloud.cn"/*g_struQcStaInfo.u8CloudAddr*/, &g_u32CloudIp);
                 qcom_thread_msleep(5000);
                 if (A_OK != retval)
@@ -961,6 +983,7 @@ void QC_Cloudfunc(ULONG which_thread)
 {
     int fd;
     u32 u32Timer = 0;
+    A_UINT8 u8WifiStatus;
 
     if (g_struQcStaInfo.u32Magic != ZC_MAGIC_FLAG)
     {
@@ -994,6 +1017,12 @@ void QC_Cloudfunc(ULONG which_thread)
                 QC_SendDataToCloud(&g_struProtocolController.struCloudConnection);
             }
             QC_SendBc();
+            qcom_get_state(&u8WifiStatus);
+            if (u8WifiStatus != QCOM_WLAN_LINK_STATE_CONNECTED_STATE)
+            {
+               QC_Sleep();
+               QC_SetNetwork();
+            }
 
         } 
     }
@@ -1098,7 +1127,10 @@ void QC_Sleep()
     
     g_struUartBuffer.u32RecvLen = 0;
     
+    
+   
 }
 /******************************* FILE END *****************/
+
 
 

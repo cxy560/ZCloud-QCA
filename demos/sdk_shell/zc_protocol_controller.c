@@ -219,7 +219,6 @@ void PCT_SendCloudAccessMsg1(PTC_ProtocolCon *pstruContoller)
     }
 
     ZC_Printf("Send Msg1 \n");
-    ZC_TraceData(pstruContoller->RandMsg, ZC_HS_MSG_LEN);
 
     pstruContoller->u8MainState = PCT_STATE_WAIT_ACCESSRSP;
 
@@ -463,7 +462,6 @@ void PCT_RecvAccessMsg2(PTC_ProtocolCon *pstruContoller)
 
     pstruMsg = (ZC_MessageHead*)pstruBuffer->u8MsgBuffer;
     pstruMsg2 = (ZC_HandShakeMsg2*)(pstruMsg + 1);
-    ZC_TraceData((u8*)pstruMsg, ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_MessageHead));
 
     if (ZC_CODE_HANDSHAKE_2 == pstruMsg->MsgCode)
     {
@@ -488,8 +486,6 @@ void PCT_RecvAccessMsg2(PTC_ProtocolCon *pstruContoller)
             {
                 PCT_DisConnectCloud(pstruContoller);
                 ZC_Printf("Recv Msg2 rand error \n");            
-                ZC_TraceData(pstruMsg2->RandMsg, ZC_HS_MSG_LEN);
-                ZC_TraceData(pstruContoller->RandMsg, ZC_HS_MSG_LEN);
             }
         }
     }
@@ -519,7 +515,6 @@ void PCT_RecvAccessMsg4(PTC_ProtocolCon *pstruContoller)
     
     pstruMsg = (ZC_MessageHead*)pstruBuffer->u8MsgBuffer;
     pstruMsg4 = (ZC_HandShakeMsg4 *)(pstruMsg + 1);
-    ZC_TraceData((u8*)pstruMsg, ZC_HTONS(pstruMsg->Payloadlen) + sizeof(ZC_MessageHead));
     
     if (ZC_CODE_HANDSHAKE_4 == pstruMsg->MsgCode)
     {
@@ -541,8 +536,6 @@ void PCT_RecvAccessMsg4(PTC_ProtocolCon *pstruContoller)
             {
                 PCT_DisConnectCloud(pstruContoller);
                 ZC_Printf("Recv msg4 rand error \n");            
-                ZC_TraceData(pstruMsg4->RandMsg, ZC_HS_MSG_LEN);
-                ZC_TraceData(pstruContoller->RandMsg, ZC_HS_MSG_LEN);
             }
         }
     }

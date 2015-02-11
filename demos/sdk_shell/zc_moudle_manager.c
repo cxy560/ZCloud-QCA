@@ -124,7 +124,8 @@ u32 ZC_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
     ZC_OptList struOptList;
     u16 u16OptLen= 0;
     u8 *pu8Payload = NULL;
-    
+
+    ZC_Printf("recv uart data\n");
     ZC_TraceData(pu8Data, u16DataLen);
 
     if (0 == u16DataLen)
@@ -133,7 +134,6 @@ u32 ZC_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
     }
     
     pstruMsg = (ZC_MessageHead *)pu8Data;
-    ZC_TraceData((u8 *)(pstruMsg + 1), u16DataLen);
     if(ZC_RET_ERROR == PCT_CheckCrc(pstruMsg->TotalMsgCrc, (u8 *)(pstruMsg + 1), ZC_HTONS(pstruMsg->Payloadlen)))
     {
          return ZC_RET_ERROR;
