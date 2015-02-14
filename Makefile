@@ -71,7 +71,11 @@ GEN_BINS := $(QCA4004_DEMO_RAM_BINS) $(QCA4004_USER_RAM_BINS)
 
 # =====QCA4004 sdk_shell.out
 COMPONENTS_sdk_shell =                    \
-    $(dir_sdk_shell)/libsdk_shell.a
+    $(dir_sdk_shell)/libsdk_shell.a\
+    $(dir_sdk_shell)/aes/libsdk_aes.a\
+    $(dir_sdk_shell)/ZC/libsdk_crc.a\
+    $(dir_sdk_shell)/ZC/src/tropicssl/libsdk_ssl.a\
+    $(dir_sdk_shell)/ZC/src/zc/libsdk_zc.a\
 
 # Extra dependencies that are not handled by general rules
 DEPENDS_sdk_shell =                   \

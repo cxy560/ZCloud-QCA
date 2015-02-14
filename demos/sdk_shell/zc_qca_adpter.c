@@ -13,12 +13,15 @@
 #include <zc_protocol_controller.h>
 #include <zc_timer.h>
 #include <zc_module_interface.h>
-#include <zc_socket.h>
 #include <zc_qca_adpter.h>
 #include <qcom_wlan.h>
 #include <qcom_system.h>
 #include <qca_sniffer.h>
 #include <qcom_internal.h>
+#include <socket_api.h>
+#include <select_api.h>
+
+
 
 
 extern PTC_ProtocolCon  g_struProtocolController;
@@ -77,6 +80,22 @@ extern void _ota_nvram_write_partition_magicword(int partition);
 
 s32 g_s32StorePartition = 0;//1024 use 4 partition, 512 use 2 partition
 u32 g_u32CloudIp = 0;
+/*************************************************
+* Function: rand
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+int rand()
+{
+    unsigned long next;
+    next = time_ms();
+    next = next * 1103515245 + 12345;  
+    return((unsigned)(next/65536) % 32768);  
+}
+
 
 /*************************************************
 * Function: QC_LoadPartition
@@ -88,20 +107,9 @@ u32 g_u32CloudIp = 0;
 *************************************************/
 void QC_LoadPartition()
 {
-    s32 s32ActivePartition = -1;
     _ota_nvram_load_partition_table();
-    s32ActivePartition = qcom_nvram_select(-1);
-    
-    if (qca_partition_entries[2] == 0xFFFFFFFF) 
-    {
-        g_s32StorePartition = 1;
-    }
-    else
-    {
-        g_s32StorePartition = 3;        
-    }
+    g_s32StorePartition = 1;
 }
-
 /*************************************************
 * Function: QC_ReadDataFormFlash
 * Description: 
@@ -215,7 +223,7 @@ void QC_SendDataToCloud(PTC_Connection *pstruConnection)
     }
     
     u16DataLen = pstruBuf->u32Len; 
-    zc_send(pstruConnection->u32Socket, (char*)pstruBuf->u8MsgBuffer, u16DataLen, 0);
+    qcom_send(pstruConnection->u32Socket, (char*)pstruBuf->u8MsgBuffer, u16DataLen, 0);
  
     ZC_Printf("send data len = %d\n", u16DataLen);
     pstruBuf->u8Status = MSG_BUFFER_IDLE;
@@ -423,7 +431,7 @@ void QC_Rest(void)
 *************************************************/
 void QC_SendDataToNet(u32 u32Fd, u8 *pu8Data, u16 u16DataLen, ZC_SendParam *pstruParam)
 {
-    zc_send(u32Fd, (char*)pu8Data, u16DataLen, 0);
+    qcom_send(u32Fd, (char*)pu8Data, u16DataLen, 0);
 }
 
 /*************************************************
@@ -525,7 +533,7 @@ void QC_SendClientQueryReq(u8 *pu8Msg, u16 u16RecvLen)
     
     memcpy(struRsp.DeviceId, pu8DeviceId, ZC_HS_DEVICE_ID_LEN);
     EVENT_BuildMsg(ZC_CODE_CLIENT_QUERY_RSP, 0, g_u8MsgBuildBuffer, &u16Len, (u8*)&struRsp, sizeof(ZC_ClientQueryRsp));
-    zc_sendto(g_Bcfd,(char*)g_u8MsgBuildBuffer,u16Len,0,(struct sockaddr *)&addr,sizeof(addr)); 
+    qcom_sendto(g_Bcfd,(char*)g_u8MsgBuildBuffer,u16Len,0,(struct sockaddr *)&addr,sizeof(addr)); 
 }
 
 /*************************************************
@@ -603,7 +611,7 @@ void QC_CloudRecvfunc()
     }
     
     fd_act = 0;
-    fd_act = zc_select(u32MaxFd + 1, &fdread, NULL, NULL, &timeout);
+    fd_act = qcom_select(u32MaxFd + 1, &fdread, NULL, NULL, &timeout);
 
     if (0 == fd_act)
     {
@@ -630,7 +638,7 @@ void QC_CloudRecvfunc()
     {
         if (FD_ISSET(g_struProtocolController.struCloudConnection.u32Socket, &fdread))
         {
-            s32RecvLen = zc_recv(g_struProtocolController.struCloudConnection.u32Socket, (char*)g_u8recvbuffer, QC_MAX_SOCKET_LEN, 0); 
+            s32RecvLen = qcom_recv(g_struProtocolController.struCloudConnection.u32Socket, (char*)g_u8recvbuffer, QC_MAX_SOCKET_LEN, 0); 
             
             if(s32RecvLen > 0) 
             {
@@ -655,7 +663,7 @@ void QC_CloudRecvfunc()
         {
             if (FD_ISSET(g_struClientInfo.u32ClientFd[u32Index], &fdread))
             {
-                s32RecvLen = zc_recv(g_struClientInfo.u32ClientFd[u32Index], (char*)g_u8recvbuffer, QC_MAX_SOCKET_LEN, 0); 
+                s32RecvLen = qcom_recv(g_struClientInfo.u32ClientFd[u32Index], (char*)g_u8recvbuffer, QC_MAX_SOCKET_LEN, 0); 
                 if (s32RecvLen > 0)
                 {
                     ZC_RecvDataFromClient(g_struClientInfo.u32ClientFd[u32Index], g_u8recvbuffer, s32RecvLen);
@@ -663,7 +671,7 @@ void QC_CloudRecvfunc()
                 else
                 {   
                     ZC_ClientDisconnect(g_struClientInfo.u32ClientFd[u32Index]);
-                    zc_close(g_struClientInfo.u32ClientFd[u32Index]);
+                    qcom_close(g_struClientInfo.u32ClientFd[u32Index]);
                 }
                 
             }
@@ -676,11 +684,11 @@ void QC_CloudRecvfunc()
         if (FD_ISSET(g_struProtocolController.struClientConnection.u32Socket, &fdread))
         {
         
-            connfd = zc_accept(g_struProtocolController.struClientConnection.u32Socket,(struct sockaddr *)&cliaddr,(int*)&u32Len);
+            connfd = qcom_accept(g_struProtocolController.struClientConnection.u32Socket,(struct sockaddr *)&cliaddr,(int*)&u32Len);
 
             if (ZC_RET_ERROR == ZC_ClientConnect((u32)connfd))
             {
-                zc_close(connfd);
+                qcom_close(connfd);
             }
             else
             {
@@ -692,25 +700,14 @@ void QC_CloudRecvfunc()
     if (FD_ISSET(g_Bcfd, &fdread))
     {
         tmp = sizeof(addr); 
-        s32RecvLen = zc_recvfrom(g_Bcfd, (char*)g_u8BcSendBuffer, 100, 0, (struct sockaddr *)&addr, (socklen_t*)&tmp); 
+        s32RecvLen = qcom_recvfrom(g_Bcfd, (char*)g_u8BcSendBuffer, 100, 0, (struct sockaddr *)&addr, (socklen_t*)&tmp); 
         if(s32RecvLen > 0) 
         {
             QC_SendClientQueryReq(g_u8BcSendBuffer, (u16)s32RecvLen);
         } 
     }
 }
-/*************************************************
-* Function: QC_GenRand
-* Description: 
-* Author: cxy 
-* Returns: 
-* Parameter: 
-* History:
-*************************************************/
-u32 QC_GenRand()
-{
-    return time_ms();
-}
+
 
 
 
@@ -728,7 +725,7 @@ void QC_Rand(u8 *pu8Rand)
     u32 u32Index; 
     for (u32Index = 0; u32Index < 10; u32Index++)
     {
-        u32Rand = QC_GenRand();
+        u32Rand = rand();
         pu8Rand[u32Index * 4] = ((u8)u32Rand % 26) + 65;
         pu8Rand[u32Index * 4 + 1] = ((u8)(u32Rand >> 8) % 26) + 65;
         pu8Rand[u32Index * 4 + 2] = ((u8)(u32Rand >> 16) % 26) + 65;
@@ -757,14 +754,14 @@ u32 QC_ConnectToCloud(PTC_Connection *pstruConnection)
     addr.sin_family = AF_INET;
     addr.sin_port = htons(ZC_CLOUD_PORT);
     addr.sin_addr.s_addr = htonl(g_u32CloudIp);
-    fd = zc_socket(AF_INET, SOCK_STREAM, 0);
+    fd = qcom_socket(AF_INET, SOCK_STREAM, 0);
 
     if(fd<0)
         return ZC_RET_ERROR;
     
-    if (zc_connect(fd, (struct sockaddr *)&addr, sizeof(addr))< 0)
+    if (qcom_connect(fd, (struct sockaddr *)&addr, sizeof(addr))< 0)
     {
-        zc_close(fd);
+        qcom_close(fd);
         return ZC_RET_ERROR;
     }
 
@@ -789,7 +786,7 @@ u32 QC_ListenClient(PTC_Connection *pstruConnection)
     int fd; 
     struct sockaddr_in servaddr;
 
-    fd = zc_socket(AF_INET, SOCK_STREAM, 0);
+    fd = qcom_socket(AF_INET, SOCK_STREAM, 0);
     if(fd<0)
         return ZC_RET_ERROR;
 
@@ -797,15 +794,15 @@ u32 QC_ListenClient(PTC_Connection *pstruConnection)
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr=htonl(INADDR_ANY);
     servaddr.sin_port = htons(pstruConnection->u16Port);
-    if(zc_bind(fd,(struct sockaddr *)&servaddr,sizeof(servaddr))<0)
+    if(qcom_bind(fd,(struct sockaddr *)&servaddr,sizeof(servaddr))<0)
     {
-        zc_close(fd);
+        qcom_close(fd);
         return ZC_RET_ERROR;
     }
     
-    if (zc_listen(fd, 10)< 0)
+    if (qcom_listen(fd, 10)< 0)
     {
-        zc_close(fd);
+        qcom_close(fd);
         return ZC_RET_ERROR;
     }
 
@@ -832,12 +829,12 @@ void QC_BcInit()
     addr.sin_port = htons(ZC_MOUDLE_PORT); 
     addr.sin_addr.s_addr=htonl(INADDR_ANY);
 
-    g_Bcfd = zc_socket(AF_INET, SOCK_DGRAM, 0); 
+    g_Bcfd = qcom_socket(AF_INET, SOCK_DGRAM, 0); 
 
     tmp=1; 
-    zc_setsockopt(g_Bcfd, SOL_SOCKET,SO_BROADCAST,&tmp,sizeof(tmp)); 
-    zc_bind(g_Bcfd, (struct sockaddr*)&addr, sizeof(addr)); 
-
+    qcom_setsockopt(g_Bcfd, SOL_SOCKET,SO_BROADCAST,&tmp,sizeof(tmp)); 
+    qcom_bind(g_Bcfd, (struct sockaddr*)&addr, sizeof(addr)); 
+    g_struProtocolController.u16SendBcNum = 0;
     return;
 }
 /*************************************************
@@ -871,7 +868,7 @@ void QC_SendBc()
 
         if (g_struProtocolController.u16SendBcNum < (PCT_SEND_BC_MAX_NUM))
         {
-           zc_sendto(g_Bcfd,(char*)g_u8MsgBuildBuffer,u16Len,0,(struct sockaddr *)&addr,sizeof(addr)); 
+           qcom_sendto(g_Bcfd,(char*)g_u8MsgBuildBuffer,u16Len,0,(struct sockaddr *)&addr,sizeof(addr)); 
            g_struProtocolController.u16SendBcNum++;
         }
         sleepcount = 0;
@@ -901,9 +898,9 @@ void QC_GetDhcp()
         QC_CloudRecvfunc();
         /* dhcp */
         qcom_dhcpc_enable(1);
-
-        qcom_thread_msleep(5000);
-
+        
+        qcom_thread_msleep(2000);
+        
         qcom_ip_address_get(&ip, &submask, &gw);
         if ((ip == 0) ||
             (((ip >> 24 & 0xff) == 169)
@@ -939,10 +936,18 @@ void QC_SetNetwork()
         
         qcom_op_set_mode(QCOM_WLAN_DEV_MODE_STATION);
 
-        qcom_sec_set_passphrase((char*)g_struQcStaInfo.u8Password);//("2882135be2bb");//
-        
-        qcom_sta_connect_with_scan((char*)g_struQcStaInfo.u8Ssid);//("InFocus M810t");
+        if (0 == g_u32WifiConfig)
+        {
+            qcom_sec_set_passphrase((char*)g_struQcStaInfo.u8Password);
+            qcom_sta_connect_with_scan((char*)g_struQcStaInfo.u8Ssid);
+        }
+        else
+        {
+            qcom_sec_set_passphrase((char*)g_u8ConfigPassword);
+            qcom_sta_connect_with_scan((char*)g_u8ConfigSsid);
+        }
         qcom_thread_msleep(5000);
+
 
         qcom_get_state(&wifi_state);
         if (wifi_state == 4) 
@@ -953,8 +958,20 @@ void QC_SetNetwork()
             while(0 == g_u32CloudIp)
             {
                 QC_CloudRecvfunc();
-                retval = zc_gethostbyname((A_CHAR *)"test.ablecloud.cn"/*g_struQcStaInfo.u8CloudAddr*/, &g_u32CloudIp);
-                qcom_thread_msleep(5000);
+                if (1 == g_u32TestAddrConfig)
+                {
+                    retval = qcom_dnsc_get_host_by_name((A_CHAR *)"test.ablecloud.cn", &g_u32CloudIp);
+                }
+                else if (2 == g_u32TestAddrConfig)
+                {
+                    g_u32CloudIp = g_u32TestIpAddr;
+                    retval = A_OK;
+                }
+                else
+                {
+                    ZC_Printf("url = %s \n", (A_CHAR *)g_struQcStaInfo.u8CloudAddr);
+                    retval = qcom_dnsc_get_host_by_name((A_CHAR *)g_struQcStaInfo.u8CloudAddr, &g_u32CloudIp);
+                }
                 if (A_OK != retval)
                 {
                     g_u32CloudIp = 0;
@@ -970,7 +987,6 @@ void QC_SetNetwork()
         qcom_disconnect();
     }
 }
-
 /*************************************************
 * Function: QC_Cloudfunc
 * Description: 
@@ -1000,13 +1016,15 @@ void QC_Cloudfunc(ULONG which_thread)
         while(1) 
         {
             fd = g_struProtocolController.struCloudConnection.u32Socket;
+
             QC_CloudRecvfunc();
+            
             PCT_Run();
             
             if (PCT_STATE_DISCONNECT_CLOUD == g_struProtocolController.u8MainState)
             {
-                zc_close(fd);
-                u32Timer = (PCT_TIMER_INTERVAL_RECONNECT) * (QC_GenRand() % 10 + 1);
+                qcom_close(fd);
+                u32Timer = (PCT_TIMER_INTERVAL_RECONNECT) * (rand() % 10 + 1);
                 PCT_ReconnectCloud(&g_struProtocolController, u32Timer);
                 g_struUartBuffer.u32Status = MSG_BUFFER_IDLE;
                 g_struUartBuffer.u32RecvLen = 0;
@@ -1017,17 +1035,18 @@ void QC_Cloudfunc(ULONG which_thread)
                 QC_SendDataToCloud(&g_struProtocolController.struCloudConnection);
             }
             QC_SendBc();
+            
             qcom_get_state(&u8WifiStatus);
             if (u8WifiStatus != QCOM_WLAN_LINK_STATE_CONNECTED_STATE)
             {
-               QC_Sleep();
-               QC_SetNetwork();
+                QC_Sleep();
+                QC_SetNetwork();
+                QC_BcInit(); 
+
             }
 
         } 
     }
-
-    
 }
 /*************************************************
 * Function: QC_Init
@@ -1060,6 +1079,27 @@ void QC_UartInit()
     qcom_set_uart_config((A_CHAR *)"UART0", &com_uart_cfg);
 
 }
+/*************************************************
+* Function: QC_WriteUpdataData
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void QC_WriteUpdataData(u8 *u8Data)
+{
+    ZC_WriteFlashToUpdata *pstruMsg;
+    u8 u8MgicFlag[4] = {0xff,0xff,0xff,0xff};
+    
+    pstruMsg = (ZC_WriteFlashToUpdata *)u8Data;
+    memcpy(g_struQcStaInfo.u8CloudKey, pstruMsg->u8CloudKey, 36);
+    memcpy(g_struQcStaInfo.u8CloudAddr, pstruMsg->u8CloudAddr, 20);
+    QC_WriteDataToFlash();
+
+    qcom_nvram_erase(qca_partition_entries[g_s32StorePartition], 4096);
+    _ota_nvram_write_data(g_s32StorePartition, 0, u8MgicFlag, 4);
+}
 
 /*************************************************
 * Function: QC_Init
@@ -1074,8 +1114,9 @@ void QC_Init()
     QC_UartInit();
 
     QC_LoadPartition();
-
+    
     ZC_Printf("MT Init\n");
+
     g_struQcAdapter.pfunConnectToCloud = QC_ConnectToCloud;
     g_struQcAdapter.pfunListenClient = QC_ListenClient;
     g_struQcAdapter.pfunSendToNet = QC_SendDataToNet;   
@@ -1086,7 +1127,7 @@ void QC_Init()
     g_struQcAdapter.pfunGetStoreInfo = QC_GetStoreInfor;
     g_struQcAdapter.pfunSetTimer = QC_SetTimer;   
     g_struQcAdapter.pfunStopTimer = QC_StopTimer;
-    
+    g_struQcAdapter.pfunWriteFlash = QC_WriteUpdataData;
     g_struQcAdapter.pfunRest = QC_Rest;
     g_u16TcpMss = 1000;
     PCT_Init(&g_struQcAdapter);
@@ -1121,8 +1162,32 @@ void QC_WakeUp()
 *************************************************/
 void QC_Sleep()
 {
-    PCT_Sleep();
+    u32 u32Index;
     
+    qcom_close(g_Bcfd);
+
+    if (PCT_INVAILD_SOCKET != g_struProtocolController.struClientConnection.u32Socket)
+    {
+        qcom_close(g_struProtocolController.struClientConnection.u32Socket);
+        g_struProtocolController.struClientConnection.u32Socket = PCT_INVAILD_SOCKET;
+    }
+
+    if (PCT_INVAILD_SOCKET != g_struProtocolController.struCloudConnection.u32Socket)
+    {
+        qcom_close(g_struProtocolController.struCloudConnection.u32Socket);
+        g_struProtocolController.struCloudConnection.u32Socket = PCT_INVAILD_SOCKET;
+    }
+    
+    for (u32Index = 0; u32Index < ZC_MAX_CLIENT_NUM; u32Index++)
+    {
+        if (0 == g_struClientInfo.u32ClientVaildFlag[u32Index])
+        {
+            qcom_close(g_struClientInfo.u32ClientFd[u32Index]);
+            g_struClientInfo.u32ClientFd[u32Index] = PCT_INVAILD_SOCKET;
+        }
+    }
+    
+    PCT_Sleep();    
     g_struUartBuffer.u32Status = MSG_BUFFER_IDLE;
     
     g_struUartBuffer.u32RecvLen = 0;
@@ -1131,6 +1196,10 @@ void QC_Sleep()
    
 }
 /******************************* FILE END *****************/
+
+
+
+
 
 
 

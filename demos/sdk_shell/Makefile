@@ -18,6 +18,7 @@
 ifndef PDIR
 
 GEN_LIBS = libsdk_shell.a
+SUBDIRS = aes ZC
 
 endif
 
@@ -43,6 +44,8 @@ endif
 # Required for each makefile to inherit from the parent
 #
 
-INCLUDES := $(INCLUDES) -I . -I $(PDIR)include -I ../../include -I ../../include/cust  -I ../../include/qcom -I ../../include/threadx -I ../ZC/inc/tropicssl -I ../ZC/inc/zc  -I ../ZC/inc/lwip -DREV74_TEST_ENV1 
+INCLUDES := $(INCLUDES) -I . -I $(PDIR)include -I ../../include -I ../../include/cust  -I ../../include/qcom -I ../../include/threadx -I ./ZC/inc/tropicssl -I ./ZC/inc/zc -I /aes -DREV74_TEST_ENV1 
 PDIR := ../$(PDIR)
 sinclude $(PDIR)Makefile
+
+

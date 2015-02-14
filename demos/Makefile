@@ -18,7 +18,7 @@
 ifndef PDIR
 
 # Supported on all platforms
-SUBDIRS = sdk_shell 
+SUBDIRS = sdk_shell
 
 endif
 
