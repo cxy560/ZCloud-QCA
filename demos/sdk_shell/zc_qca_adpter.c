@@ -572,14 +572,12 @@ void QC_CloudRecvfunc()
 
     FD_SET(g_Bcfd, &fdread);
     u32MaxFd = u32MaxFd > g_Bcfd ? u32MaxFd : g_Bcfd;
-
     if (PCT_INVAILD_SOCKET != g_u32UartFd)
     {
         FD_SET(g_u32UartFd, &fdread);
         u32MaxFd = u32MaxFd > g_u32UartFd ? u32MaxFd : g_u32UartFd;
         u32ActiveFlag = 1;
     }
-    
     if (PCT_INVAILD_SOCKET != g_struProtocolController.struClientConnection.u32Socket)
     {
         FD_SET(g_struProtocolController.struClientConnection.u32Socket, &fdread);
@@ -696,7 +694,6 @@ void QC_CloudRecvfunc()
             }
         } 
     }
-
     if (FD_ISSET(g_Bcfd, &fdread))
     {
         tmp = sizeof(addr); 
@@ -706,11 +703,8 @@ void QC_CloudRecvfunc()
             QC_SendClientQueryReq(g_u8BcSendBuffer, (u16)s32RecvLen);
         } 
     }
+
 }
-
-
-
-
 /*************************************************
 * Function: QC_Rand
 * Description: 
@@ -748,8 +742,7 @@ u32 QC_ConnectToCloud(PTC_Connection *pstruConnection)
     
     memset((char*)&addr,0,sizeof(addr));
     ZC_Printf("connect to cloud\n");
-    
-    
+
     memset(&addr, 0, sizeof (struct sockaddr_in));   
     addr.sin_family = AF_INET;
     addr.sin_port = htons(ZC_CLOUD_PORT);
@@ -1016,11 +1009,11 @@ void QC_Cloudfunc(ULONG which_thread)
         while(1) 
         {
             fd = g_struProtocolController.struCloudConnection.u32Socket;
-
             QC_CloudRecvfunc();
             
             PCT_Run();
-            
+
+
             if (PCT_STATE_DISCONNECT_CLOUD == g_struProtocolController.u8MainState)
             {
                 qcom_close(fd);
@@ -1035,14 +1028,12 @@ void QC_Cloudfunc(ULONG which_thread)
                 QC_SendDataToCloud(&g_struProtocolController.struCloudConnection);
             }
             QC_SendBc();
-            
+
             qcom_get_state(&u8WifiStatus);
             if (u8WifiStatus != QCOM_WLAN_LINK_STATE_CONNECTED_STATE)
             {
                 QC_Sleep();
-                QC_SetNetwork();
-                QC_BcInit(); 
-
+                qcom_sys_reset();
             }
 
         } 
@@ -1091,7 +1082,6 @@ void QC_WriteUpdataData(u8 *u8Data)
 {
     ZC_WriteFlashToUpdata *pstruMsg;
     u8 u8MgicFlag[4] = {0xff,0xff,0xff,0xff};
-    
     pstruMsg = (ZC_WriteFlashToUpdata *)u8Data;
     memcpy(g_struQcStaInfo.u8CloudKey, pstruMsg->u8CloudKey, 36);
     memcpy(g_struQcStaInfo.u8CloudAddr, pstruMsg->u8CloudAddr, 20);
@@ -1196,9 +1186,6 @@ void QC_Sleep()
    
 }
 /******************************* FILE END *****************/
-
-
-
 
 
 
