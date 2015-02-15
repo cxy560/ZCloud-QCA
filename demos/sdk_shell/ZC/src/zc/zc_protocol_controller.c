@@ -1037,9 +1037,17 @@ void PCT_WakeUp()
 *************************************************/
 void PCT_Sleep()
 {
+    u32 u32Index;
     MSG_Init();
 
     g_struProtocolController.u8keyRecv = PCT_KEY_UNRECVED;
+    for (u32Index = 0; u32Index < ZC_TIMER_MAX_NUM; u32Index++)
+    {
+        if (g_struTimer[u32Index].u8Status == ZC_TIMER_STATUS_USED)
+        {
+            TIMER_StopTimer((u8)u32Index);
+        }
+    }
 
     TIMER_Init();
     g_struProtocolController.u8ReconnectTimer = PCT_TIMER_INVAILD;

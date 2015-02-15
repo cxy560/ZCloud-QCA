@@ -980,6 +980,7 @@ void QC_SetNetwork()
         qcom_disconnect();
     }
 }
+
 /*************************************************
 * Function: QC_Cloudfunc
 * Description: 
@@ -1033,7 +1034,8 @@ void QC_Cloudfunc(ULONG which_thread)
             if (u8WifiStatus != QCOM_WLAN_LINK_STATE_CONNECTED_STATE)
             {
                 QC_Sleep();
-                qcom_sys_reset();
+                QC_SetNetwork();
+                QC_BcInit();
             }
 
         } 
@@ -1177,16 +1179,12 @@ void QC_Sleep()
         }
     }
     
-    PCT_Sleep();    
+    PCT_Sleep();
+    
     g_struUartBuffer.u32Status = MSG_BUFFER_IDLE;
     
     g_struUartBuffer.u32RecvLen = 0;
-    
-    
-   
 }
 /******************************* FILE END *****************/
-
-
 
 

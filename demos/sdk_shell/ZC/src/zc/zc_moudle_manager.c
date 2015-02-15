@@ -136,7 +136,7 @@ u32 ZC_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
     ZC_TraceData((u8 *)(pstruMsg + 1), u16DataLen);
     if(ZC_RET_ERROR == PCT_CheckCrc(pstruMsg->TotalMsgCrc, (u8 *)(pstruMsg + 1), ZC_HTONS(pstruMsg->Payloadlen)))
     {
-        return ZC_RET_ERROR;
+         return ZC_RET_ERROR;
     }
 
     struOptList.pstruSsession = NULL;
