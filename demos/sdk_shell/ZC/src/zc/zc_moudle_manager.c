@@ -102,7 +102,7 @@ u32 ZC_DealSessionOpt(ZC_MessageHead *pstruMsg, ZC_OptList *pstruOptList, u8 *pu
     
     struParam.u8NeedPoll = 1;
     
-    g_struProtocolController.pstruMoudleFun->pfunSendToNet(u32ClientId, g_u8MsgBuildBuffer, g_u8ClientSendLen, &struParam);
+    g_struProtocolController.pstruMoudleFun->pfunSendTcpData(u32ClientId, g_u8MsgBuildBuffer, g_u8ClientSendLen, &struParam);
     
     g_u8ClientSendLen = 0;
     return ZC_RET_OK;

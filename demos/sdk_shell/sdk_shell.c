@@ -12,7 +12,6 @@
 
 #include <zc_qca_adpter.h>
 
-unsigned int g_u32GloablIp;
 
 TX_THREAD g_struCloudThread;
 
@@ -41,3 +40,5 @@ void user_main(void)
 
     tx_thread_create(&g_struCloudThread, "QC_Cloudfunc", QC_Cloudfunc, i, pointer, PSEUDO_HOST_STACK_SIZE, 16, 16, 4, TX_AUTO_START);
 }
+
+

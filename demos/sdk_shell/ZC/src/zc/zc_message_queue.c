@@ -285,4 +285,38 @@ void MSG_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
     return;
 }
 
+/*************************************************
+* Function: MSG_SendDataToCloud
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void MSG_SendDataToCloud(u8 *pu8Connection)
+{
+    PTC_Connection *pstruConnection = (PTC_Connection *)pu8Connection;
+    MSG_Buffer *pstruBuf = NULL;
+    ZC_SendParam struParam;
+
+    u16 u16DataLen; 
+    pstruBuf = (MSG_Buffer *)MSG_PopMsg(&g_struSendQueue); 
+    
+    if (NULL == pstruBuf)
+    {
+        return;
+    }
+    
+    u16DataLen = pstruBuf->u32Len; 
+    struParam.u8NeedPoll = 0;
+    g_struProtocolController.pstruMoudleFun->pfunSendTcpData(pstruConnection->u32Socket, pstruBuf->u8MsgBuffer, u16DataLen, &struParam);
+ 
+    ZC_Printf("send data len = %d\n", u16DataLen);
+    pstruBuf->u8Status = MSG_BUFFER_IDLE;
+    pstruBuf->u32Len = 0;
+    return;
+}
+
+
 /******************************* FILE END ***********************************/
+
