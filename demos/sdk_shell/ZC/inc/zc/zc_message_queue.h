@@ -55,7 +55,7 @@ u32 MSG_PushMsg(MSG_Queue *pstruMsgQueue, u8 *pu8Msg);
 u8* MSG_PopMsg(MSG_Queue *pstruMsgQueue);
 u32 MSG_RecvData(MSG_Buffer *pstruRecvBuffer, u8 *pu8Data, u32 u32DataLen);
 void MSG_Init(void);
-
+void MSG_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen);
 #ifdef __cplusplus
 }
 #endif

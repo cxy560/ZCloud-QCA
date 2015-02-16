@@ -209,7 +209,7 @@ void ZC_RecvDataFromClient(u32 ClientId, u8 *pu8Data, u32 u32DataLen)
 
     /*can hanle it,get aes key*/
     
-    g_struProtocolController.pstruMoudleFun->pfunGetStoreInfo(ZC_GET_TYPE_TOKENKEY, &pu8Key);
+    ZC_GetStoreInfor(ZC_GET_TYPE_TOKENKEY, &pu8Key);
 
     u32RetVal = ZC_CheckClientIdle(ClientId);
     if (ZC_RET_ERROR == u32RetVal)

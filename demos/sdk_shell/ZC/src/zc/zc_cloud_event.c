@@ -110,7 +110,7 @@ u32  EVENT_BuildBcMsg(u8 *pu8Msg, u16 *pu16Len)
     pstruMsg->Payloadlen = ZC_HTONS(sizeof(ZC_BroadCastInfo));
     pstruMsg->Version = ZC_VERSION;
     pstruMsg->OptNum = 0;      
-    g_struProtocolController.pstruMoudleFun->pfunGetStoreInfo(ZC_GET_TYPE_DEVICEID, &pu8DeviceId);
+    ZC_GetStoreInfor(ZC_GET_TYPE_DEVICEID, &pu8DeviceId);
 
     memcpy(struBc.RandMsg, g_struProtocolController.RandMsg, ZC_HS_MSG_LEN);
     memcpy(struBc.DeviceId, pu8DeviceId, ZC_HS_DEVICE_ID_LEN);

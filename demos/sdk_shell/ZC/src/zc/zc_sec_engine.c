@@ -29,7 +29,7 @@ u32 SEC_EncryptTextByRsa(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len, u16 *pu16
     pstruCon = &g_struProtocolController;
 
     rsa = (rsa_context *)ZC_malloc(sizeof(rsa_context));
-    pstruCon->pstruMoudleFun->pfunGetStoreInfo(ZC_GET_TYPE_CLOUDKEY, &pu8PublicKey);
+    ZC_GetStoreInfor(ZC_GET_TYPE_CLOUDKEY, &pu8PublicKey);
 
     SEC_InitRsaContextWithPublicKey(rsa, pu8PublicKey);
 
@@ -96,7 +96,7 @@ u32 SEC_DecryptTextByRsa(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len, u16 *pu16
     pstruRsa = (rsa_context *)ZC_malloc(sizeof(rsa_context));
 
     pstruCon = &g_struProtocolController;
-    pstruCon->pstruMoudleFun->pfunGetStoreInfo(ZC_GET_TYPE_PRIVATEKEY, &pu8PrivateKey);
+    ZC_GetStoreInfor(ZC_GET_TYPE_PRIVATEKEY, &pu8PrivateKey);
 
 
     SEC_InitRsaContextWithPrivateKey(pstruRsa, pu8PrivateKey);
@@ -288,11 +288,11 @@ u32 SEC_PaddingCheck(u8 u8SecType, u16 u16PlainLen, u16 *u16PaddingLen)
     u8 u8SecFlag;
     *u16PaddingLen = 0;
 
-    if (0 == g_u32SecSwitch)
+    if (0 == g_struZcConfigDb.struSwitchInfo.u32SecSwitch)
     {
         u8SecFlag = ZC_SEC_ALG_NONE;
     }
-    else if (2 == g_u32SecSwitch)
+    else if (2 == g_struZcConfigDb.struSwitchInfo.u32SecSwitch)
     {
         if (ZC_SEC_ALG_RSA == u8SecType)
         {
@@ -347,11 +347,11 @@ u32 SEC_Encrypt(ZC_SecHead *pstruSecHead, u8 *pu8CiperBuf, u8 *pu8PlainBuf, u16 
     
     u8 u8SecFlag;
     
-    if (0 == g_u32SecSwitch)
+    if (0 == g_struZcConfigDb.struSwitchInfo.u32SecSwitch)
     {
         u8SecFlag = ZC_SEC_ALG_NONE;
     }
-    else if (2 == g_u32SecSwitch)
+    else if (2 == g_struZcConfigDb.struSwitchInfo.u32SecSwitch)
     {
         if (ZC_SEC_ALG_RSA == pstruSecHead->u8SecType)
         {
@@ -395,11 +395,11 @@ u32 SEC_Decrypt(ZC_SecHead *pstruSecHead, u8 *pu8CiperBuf, u8 *pu8PlainBuf, u16 
     u32 u32RetVal = ZC_RET_ERROR;
 
     u8 u8SecFlag;
-    if (0 == g_u32SecSwitch)
+    if (0 == g_struZcConfigDb.struSwitchInfo.u32SecSwitch)
     {
         u8SecFlag = ZC_SEC_ALG_NONE;
     }
-    else if (2 == g_u32SecSwitch)
+    else if (2 == g_struZcConfigDb.struSwitchInfo.u32SecSwitch)
     {
         if (ZC_SEC_ALG_RSA == pstruSecHead->u8SecType)
         {

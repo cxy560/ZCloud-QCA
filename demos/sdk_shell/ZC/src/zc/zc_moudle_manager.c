@@ -82,7 +82,7 @@ u32 ZC_DealSessionOpt(ZC_MessageHead *pstruMsg, ZC_OptList *pstruOptList, u8 *pu
     memcpy(g_u8MsgBuildBuffer + sizeof(ZC_SecHead), (u8*)pstruMsg, sizeof(ZC_MessageHead));
 
     
-    g_struProtocolController.pstruMoudleFun->pfunGetStoreInfo(ZC_GET_TYPE_TOKENKEY, &pu8Key);
+    ZC_GetStoreInfor(ZC_GET_TYPE_TOKENKEY, &pu8Key);
 
     u32CiperLen = MSG_BULID_BUFFER_MAXLEN;
     AES_CBC_Encrypt(g_u8MsgBuildBuffer + sizeof(ZC_SecHead), u16RealLen + sizeof(ZC_MessageHead),
@@ -169,8 +169,7 @@ u32 ZC_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
                 return ZC_RET_OK;
             }
             
-            g_struProtocolController.pstruMoudleFun->pfunStoreInfo(0, pu8Payload, sizeof(ZC_RegisterReq));
-
+            ZC_StoreRegisterInfo(pu8Payload);
             g_struProtocolController.u8MainState = PCT_STATE_ACCESS_NET; 
             
             if (PCT_TIMER_INVAILD != g_struProtocolController.u8RegisterTimer)
@@ -204,9 +203,6 @@ u32 ZC_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
             break;
         case ZC_CODE_CONFIG:
             ZC_ConfigPara(pu8Payload);
-            break;
-        case ZC_CODE_WRITECONFIG:
-            g_struProtocolController.pstruMoudleFun->pfunWriteFlash(pu8Payload);
             break;
         default:
             if(PCT_STATE_CONNECT_CLOUD == g_struProtocolController.u8MainState)

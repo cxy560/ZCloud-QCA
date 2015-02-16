@@ -47,19 +47,6 @@ u8 g_u8ClientSendLen = 0;
 u16 g_u16TcpMss;
 u16 g_u16LocalPort;
 
-
-QC_StaInfo g_struQcStaInfo = 
-{
-    0xFFFFFFFF,
-    DEFAULT_IOT_CLOUD_KEY,
-    DEFAULT_IOT_PRIVATE_KEY,
-    DEFAULT_DEVICIID,
-    "www.ablecloud.cn",
-    DEFAULT_EQ_VERSION,
-    DEFAULT_TOKEN_KEY,
-    "test",
-    "test"
-};
 u8 g_u8recvbuffer[QC_MAX_SOCKET_LEN];
 ZC_UartBuffer g_struUartBuffer;
 QC_TimerInfo g_struQcTimer[ZC_TIMER_MAX_NUM];
@@ -120,8 +107,18 @@ void QC_LoadPartition()
 *************************************************/
 void QC_ReadDataFormFlash(void) 
 {
-    u32 u32Offset = 0x40000 - sizeof(g_struQcStaInfo);
-    _ota_nvram_read_data(g_s32StorePartition, u32Offset, (u8 *)(&g_struQcStaInfo), sizeof(g_struQcStaInfo));
+    u32 u32MagicFlag = 0xFFFFFFFF;
+    u32 u32Offset = 0x40000 - sizeof(ZC_ConfigDB);
+    
+    _ota_nvram_read_data(g_s32StorePartition, u32Offset, (u8 *)(&u32MagicFlag), 4);
+    if (ZC_MAGIC_FLAG == u32MagicFlag)
+    {   
+        _ota_nvram_read_data(g_s32StorePartition, u32Offset, (u8 *)(&g_struZcConfigDb), sizeof(ZC_ConfigDB));
+    }
+    else
+    {
+        ZC_Printf("no para, use default");
+    }
 }
 
 /*************************************************
@@ -132,15 +129,15 @@ void QC_ReadDataFormFlash(void)
 * Parameter: 
 * History:
 *************************************************/
-void QC_WriteDataToFlash(void)
+void QC_WriteDataToFlash(u8 *pu8Data, u16 u16Len)
 {
-    u32 u32Offset = 0x40000 - sizeof(g_struQcStaInfo);
+    u32 u32Offset = 0x40000 - sizeof(ZC_ConfigDB);
     u32 u32EraseOffset;
     u32EraseOffset = u32Offset & 0xFFFFF000;
     
     qcom_nvram_erase(qca_partition_entries[g_s32StorePartition] + u32EraseOffset, 4096);
     
-    _ota_nvram_write_data(g_s32StorePartition, u32Offset, (u8 *)(&g_struQcStaInfo), sizeof(g_struQcStaInfo));
+    _ota_nvram_write_data(g_s32StorePartition, u32Offset, pu8Data, u16Len);
 }
 
 /*************************************************
@@ -231,40 +228,6 @@ void QC_SendDataToCloud(PTC_Connection *pstruConnection)
     return;
 }
 /*************************************************
-* Function: QC_RecvDataFromCloud
-* Description: 
-* Author: cxy 
-* Returns: 
-* Parameter: 
-* History:
-*************************************************/
-void QC_RecvDataFromCloud(u8 *pu8Data, u32 u32DataLen)
-{
-    u32 u32RetVal;
-    u16 u16PlainLen;
-    u32RetVal = MSG_RecvData(&g_struRecvBuffer, pu8Data, u32DataLen);
-
-    if (ZC_RET_OK == u32RetVal)
-    {
-        if (MSG_BUFFER_FULL == g_struRecvBuffer.u8Status)
-        {
-            u32RetVal = SEC_Decrypt((ZC_SecHead*)g_struRecvBuffer.u8MsgBuffer, 
-                g_struRecvBuffer.u8MsgBuffer + sizeof(ZC_SecHead), g_u8MsgBuildBuffer, &u16PlainLen);
-
-            /*copy data*/
-            memcpy(g_struRecvBuffer.u8MsgBuffer, g_u8MsgBuildBuffer, u16PlainLen);
-
-            g_struRecvBuffer.u32Len = u16PlainLen;
-            if (ZC_RET_OK == u32RetVal)
-            {
-                u32RetVal = MSG_PushMsg(&g_struRecvQueue, (u8*)&g_struRecvBuffer);
-            }
-        }
-    }
-    
-    return;
-}
-/*************************************************
 * Function: QC_FirmwareUpdateFinish
 * Description: 
 * Author: cxy 
@@ -297,7 +260,7 @@ u32 QC_FirmwareUpdate(u8 *pu8FileData, u32 u32Offset, u32 u32DataLen)
     u32HeadLen = 40;//sizeof(QCA_OTA_IMAGE_HDR_t);
 
     /*first erase partition, but not to erase last sector, last sector is sta store infor*/
-    u32EraseOffset = (0x40000 - sizeof(g_struQcStaInfo)) & 0xFFFFF000;
+    u32EraseOffset = (0x40000 - sizeof(ZC_ConfigDB)) & 0xFFFFF000;
     if (0 == u32Offset)
     {
         qcom_nvram_erase(qca_partition_entries[g_s32StorePartition], u32EraseOffset);
@@ -346,37 +309,6 @@ u32 QC_SendDataToMoudle(u8 *pu8Data, u16 u16DataLen)
     qcom_uart_write(g_u32UartFd,(char*)pu8Data,&u32OutLen); 
     return ZC_RET_OK;
 }
-
-/*************************************************
-* Function: QC_GetStoreInfor
-* Description: 
-* Author: cxy 
-* Returns: 
-* Parameter: 
-* History:
-*************************************************/
-u32 QC_GetStoreInfor(u8 u8Type, u8 **pu8Data)
-{
-    switch(u8Type)
-    {
-        case ZC_GET_TYPE_CLOUDKEY:
-            *pu8Data = g_struQcStaInfo.u8CloudKey;
-            break;
-        case ZC_GET_TYPE_DEVICEID:
-            *pu8Data = g_struQcStaInfo.u8DeviciId;
-            break;
-        case ZC_GET_TYPE_PRIVATEKEY:
-            *pu8Data = g_struQcStaInfo.u8PrivateKey;
-            break;
-        case ZC_GET_TYPE_VESION:
-            *pu8Data = g_struQcStaInfo.u8EqVersion;
-            break;
-        case ZC_GET_TYPE_TOKENKEY:
-            *pu8Data = g_struQcStaInfo.u8TokenKey;
-            break;
-    }
-    return ZC_RET_OK;
-}
 /*************************************************
 * Function: QC_SnifferSuccess
 * Description: 
@@ -395,11 +327,7 @@ void QC_SnifferSuccess(char *ssid, char *password, unsigned char response)
     {
         return;
     }
-    g_struQcStaInfo.u32Magic = ZC_MAGIC_FLAG;
-    memcpy(g_struQcStaInfo.u8Ssid, ssid, strlen(ssid) + 1);
-    memcpy(g_struQcStaInfo.u8Password, password, strlen(password) + 1);
-    
-    QC_WriteDataToFlash();
+    ZC_StoreConnectionInfo((u8*)ssid, (u8*)password);
 
     qcom_sys_reset();
 }
@@ -415,9 +343,9 @@ void QC_SnifferSuccess(char *ssid, char *password, unsigned char response)
 *************************************************/
 void QC_Rest(void)
 {
-    g_struQcStaInfo.u32Magic = 0xFFFFFFFF;
+    g_struZcConfigDb.struConnection.u32MagicFlag = 0xFFFFFFFF;
     
-    QC_WriteDataToFlash();
+    QC_WriteDataToFlash((u8*)&g_struZcConfigDb, sizeof(ZC_ConfigDB));
 
     qcom_sys_reset();
 }
@@ -432,44 +360,6 @@ void QC_Rest(void)
 void QC_SendDataToNet(u32 u32Fd, u8 *pu8Data, u16 u16DataLen, ZC_SendParam *pstruParam)
 {
     qcom_send(u32Fd, (char*)pu8Data, u16DataLen, 0);
-}
-
-/*************************************************
-* Function: QC_StoreRegisterInfor
-* Description: 
-* Author: cxy 
-* Returns: 
-* Parameter: 
-* History:
-*************************************************/
-u32 QC_StoreRegisterInfor(u8 u8Type, u8 *pu8Data, u16 u16DataLen)
-{
-    switch(u8Type)
-    {
-        case 0:
-        {
-            ZC_RegisterReq *pstruRegister;
-            
-            pstruRegister = (ZC_RegisterReq *)(pu8Data);
-            
-            memcpy(g_struQcStaInfo.u8PrivateKey, pstruRegister->u8ModuleKey, ZC_MODULE_KEY_LEN);
-            memcpy(g_struQcStaInfo.u8DeviciId, pstruRegister->u8DeviceId, ZC_HS_DEVICE_ID_LEN);
-            memcpy(g_struQcStaInfo.u8DeviciId + ZC_HS_DEVICE_ID_LEN, pstruRegister->u8Domain, ZC_DOMAIN_LEN);
-            memcpy(g_struQcStaInfo.u8EqVersion, pstruRegister->u8EqVersion, ZC_EQVERSION_LEN);
-        
-            break;
-        }
-        case 1:
-        {
-            memcpy(g_struQcStaInfo.u8TokenKey, pu8Data, u16DataLen);
-            QC_WriteDataToFlash();
-            break;
-        }
-        default:
-            break;
-    }
-    
-    return ZC_RET_OK;
 }
 /*************************************************
 * Function: QC_SendClientQueryReq
@@ -507,7 +397,7 @@ void QC_SendClientQueryReq(u8 *pu8Msg, u16 u16RecvLen)
     {
         return;
     }
-    g_struProtocolController.pstruMoudleFun->pfunGetStoreInfo(ZC_GET_TYPE_DEVICEID, &pu8DeviceId);
+    ZC_GetStoreInfor(ZC_GET_TYPE_DEVICEID, &pu8DeviceId);
     pu8Domain = pu8DeviceId + ZC_HS_DEVICE_ID_LEN;
 
     /*Only first 6 bytes is vaild*/
@@ -641,7 +531,7 @@ void QC_CloudRecvfunc()
             if(s32RecvLen > 0) 
             {
                 ZC_Printf("recv data len = %d\n", s32RecvLen);
-                QC_RecvDataFromCloud(g_u8recvbuffer, s32RecvLen);
+                MSG_RecvDataFromCloud(g_u8recvbuffer, s32RecvLen);
             }
             else
             {
@@ -705,27 +595,6 @@ void QC_CloudRecvfunc()
     }
 
 }
-/*************************************************
-* Function: QC_Rand
-* Description: 
-* Author: cxy 
-* Returns: 
-* Parameter: 
-* History:
-*************************************************/
-void QC_Rand(u8 *pu8Rand)
-{
-    u32 u32Rand;
-    u32 u32Index; 
-    for (u32Index = 0; u32Index < 10; u32Index++)
-    {
-        u32Rand = rand();
-        pu8Rand[u32Index * 4] = ((u8)u32Rand % 26) + 65;
-        pu8Rand[u32Index * 4 + 1] = ((u8)(u32Rand >> 8) % 26) + 65;
-        pu8Rand[u32Index * 4 + 2] = ((u8)(u32Rand >> 16) % 26) + 65;
-        pu8Rand[u32Index * 4 + 3] = ((u8)(u32Rand >> 24) % 26) + 65;        
-    }
-}
 
 /*************************************************
 * Function: QC_ConnectToCloud
@@ -762,7 +631,7 @@ u32 QC_ConnectToCloud(PTC_Connection *pstruConnection)
     g_struProtocolController.struCloudConnection.u32Socket = fd;
 
     
-    QC_Rand(g_struProtocolController.RandMsg);
+    ZC_Rand(g_struProtocolController.RandMsg);
 
     return ZC_RET_OK;
 }
@@ -929,15 +798,15 @@ void QC_SetNetwork()
         
         qcom_op_set_mode(QCOM_WLAN_DEV_MODE_STATION);
 
-        if (0 == g_u32WifiConfig)
+        if (0 == g_struZcConfigDb.struSwitchInfo.u32WifiConfig)
         {
-            qcom_sec_set_passphrase((char*)g_struQcStaInfo.u8Password);
-            qcom_sta_connect_with_scan((char*)g_struQcStaInfo.u8Ssid);
+            qcom_sec_set_passphrase((char*)g_struZcConfigDb.struConnection.u8Password);
+            qcom_sta_connect_with_scan((char*)g_struZcConfigDb.struConnection.u8Ssid);
         }
         else
         {
-            qcom_sec_set_passphrase((char*)g_u8ConfigPassword);
-            qcom_sta_connect_with_scan((char*)g_u8ConfigSsid);
+            qcom_sec_set_passphrase((char*)g_struZcConfigDb.struSwitchInfo.u8Ssid);
+            qcom_sta_connect_with_scan((char*)g_struZcConfigDb.struSwitchInfo.u8Password);
         }
         qcom_thread_msleep(5000);
 
@@ -951,19 +820,18 @@ void QC_SetNetwork()
             while(0 == g_u32CloudIp)
             {
                 QC_CloudRecvfunc();
-                if (1 == g_u32TestAddrConfig)
+                if (1 == g_struZcConfigDb.struSwitchInfo.u32TestAddrConfig)
                 {
                     retval = qcom_dnsc_get_host_by_name((A_CHAR *)"test.ablecloud.cn", &g_u32CloudIp);
                 }
-                else if (2 == g_u32TestAddrConfig)
+                else if (2 == g_struZcConfigDb.struSwitchInfo.u32TestAddrConfig)
                 {
-                    g_u32CloudIp = g_u32TestIpAddr;
+                    g_u32CloudIp = g_struZcConfigDb.struSwitchInfo.u32ServerIp;
                     retval = A_OK;
                 }
                 else
                 {
-                    ZC_Printf("url = %s \n", (A_CHAR *)g_struQcStaInfo.u8CloudAddr);
-                    retval = qcom_dnsc_get_host_by_name((A_CHAR *)g_struQcStaInfo.u8CloudAddr, &g_u32CloudIp);
+                    retval = qcom_dnsc_get_host_by_name((A_CHAR *)g_struZcConfigDb.struCloudInfo.u8CloudAddr, &g_u32CloudIp);
                 }
                 if (A_OK != retval)
                 {
@@ -995,7 +863,7 @@ void QC_Cloudfunc(ULONG which_thread)
     u32 u32Timer = 0;
     A_UINT8 u8WifiStatus;
 
-    if (g_struQcStaInfo.u32Magic != ZC_MAGIC_FLAG)
+    if (g_struZcConfigDb.struConnection.u32MagicFlag != ZC_MAGIC_FLAG)
     {
         sniffer_start(SCAN_CHANNEL_MODE, QC_SnifferSuccess);
     }
@@ -1072,26 +940,6 @@ void QC_UartInit()
     qcom_set_uart_config((A_CHAR *)"UART0", &com_uart_cfg);
 
 }
-/*************************************************
-* Function: QC_WriteUpdataData
-* Description: 
-* Author: cxy 
-* Returns: 
-* Parameter: 
-* History:
-*************************************************/
-void QC_WriteUpdataData(u8 *u8Data)
-{
-    ZC_WriteFlashToUpdata *pstruMsg;
-    u8 u8MgicFlag[4] = {0xff,0xff,0xff,0xff};
-    pstruMsg = (ZC_WriteFlashToUpdata *)u8Data;
-    memcpy(g_struQcStaInfo.u8CloudKey, pstruMsg->u8CloudKey, 36);
-    memcpy(g_struQcStaInfo.u8CloudAddr, pstruMsg->u8CloudAddr, 20);
-    QC_WriteDataToFlash();
-
-    qcom_nvram_erase(qca_partition_entries[g_s32StorePartition], 4096);
-    _ota_nvram_write_data(g_s32StorePartition, 0, u8MgicFlag, 4);
-}
 
 /*************************************************
 * Function: QC_Init
@@ -1115,11 +963,9 @@ void QC_Init()
     g_struQcAdapter.pfunUpdate = QC_FirmwareUpdate;     
     g_struQcAdapter.pfunUpdateFinish = QC_FirmwareUpdateFinish;
     g_struQcAdapter.pfunSendToMoudle = QC_SendDataToMoudle;  
-    g_struQcAdapter.pfunStoreInfo = QC_StoreRegisterInfor;
-    g_struQcAdapter.pfunGetStoreInfo = QC_GetStoreInfor;
     g_struQcAdapter.pfunSetTimer = QC_SetTimer;   
     g_struQcAdapter.pfunStopTimer = QC_StopTimer;
-    g_struQcAdapter.pfunWriteFlash = QC_WriteUpdataData;
+    g_struQcAdapter.pfunWriteFlash = QC_WriteDataToFlash;
     g_struQcAdapter.pfunRest = QC_Rest;
     g_u16TcpMss = 1000;
     PCT_Init(&g_struQcAdapter);

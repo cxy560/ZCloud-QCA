@@ -113,6 +113,9 @@ void PCT_Init(PTC_ModuleAdapter *pstruAdapter)
     g_struProtocolController.struClientConnection.u16Port = ZC_SERVER_PORT;
     g_struProtocolController.struClientConnection.u8IpType = ZC_IPTYPE_IPV4;
     g_struProtocolController.struClientConnection.u8ConnectionType = ZC_CONNECT_TYPE_TCP;
+
+    ZC_ConfigInitPara();
+
     MSG_Init();
     TIMER_Init();
     
@@ -196,7 +199,7 @@ void PCT_SendCloudAccessMsg1(PTC_ProtocolCon *pstruContoller)
         pstruContoller->u8ReconnectTimer = PCT_TIMER_INVAILD;
     }
     
-    pstruContoller->pstruMoudleFun->pfunGetStoreInfo(ZC_GET_TYPE_DEVICEID, &pu8DeviceId);
+    ZC_GetStoreInfor(ZC_GET_TYPE_DEVICEID, &pu8DeviceId);
     
     memcpy(struMsg1.RandMsg, pstruContoller->RandMsg, ZC_HS_MSG_LEN);
     memcpy(struMsg1.DeviceId, pu8DeviceId, ZC_HS_DEVICE_ID_LEN);
@@ -243,7 +246,7 @@ void PCT_SendCloudAccessMsg3(PTC_ProtocolCon *pstruContoller)
     ZC_SecHead struSechead;
     u8 *pu8Vesion;
 
-    pstruContoller->pstruMoudleFun->pfunGetStoreInfo(ZC_GET_TYPE_VESION, &pu8Vesion);
+    ZC_GetStoreInfor(ZC_GET_TYPE_VESION, &pu8Vesion);
     
     memcpy(struMsg3.RandMsg, pstruContoller->RandMsg, ZC_HS_MSG_LEN);
     memcpy(struMsg3.u8EqVersion, pu8Vesion, ZC_EQVERSION_LEN);
@@ -369,7 +372,6 @@ void PCT_SendMoudleTimeout(PTC_ProtocolCon *pstruProtocolController)
 {
     MSG_Buffer *pstruBuffer;
     ZC_MessageHead *pstruMsg;
-    ZC_SecHead struHead;
     pstruBuffer = (MSG_Buffer *)pstruProtocolController->pu8SendMoudleBuffer;
     pstruMsg = (ZC_MessageHead*)pstruBuffer->u8MsgBuffer;
 
@@ -377,17 +379,6 @@ void PCT_SendMoudleTimeout(PTC_ProtocolCon *pstruProtocolController)
     pstruProtocolController->u8ReSendMoudleNum++;
 
     ZC_Printf("send moudle timeout, data len = %d\n",pstruBuffer->u32Len);
-    if (g_u32LoopFlag == 1)
-    {
-        struHead.u8SecType = ZC_SEC_ALG_AES;
-        struHead.u16TotalMsg = ZC_HTONS(pstruBuffer->u32Len);
-        PCT_SendMsgToCloud(&struHead, pstruBuffer->u8MsgBuffer);
-        pstruBuffer->u32Len = 0;
-        pstruBuffer->u8Status = MSG_BUFFER_IDLE;
-        pstruProtocolController->u8SendMoudleTimer = PCT_TIMER_INVAILD;
-        pstruProtocolController->u8ReSendMoudleNum = 0;
-        return;
-    }
     
     if (pstruProtocolController->u8ReSendMoudleNum > PCT_SENDMOUDLE_NUM)
     {
@@ -829,18 +820,10 @@ void PCT_HandleMoudleMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstruBuffe
     ZC_MessageHead *pstruMsg;
     pstruMsg = (ZC_MessageHead*)pstruBuffer->u8MsgBuffer;
 
-    if (2 == g_u32LoopFlag)
-    {
-        PCT_SendAckToCloud(pstruMsg->MsgId);
-        return;
-    }
-    
 
     /*Send to Moudle*/
-    if (0 == g_u32LoopFlag)
-    {
-        pstruContoller->pstruMoudleFun->pfunSendToMoudle((u8*)pstruMsg, pstruBuffer->u32Len);
-    }
+    pstruContoller->pstruMoudleFun->pfunSendToMoudle((u8*)pstruMsg, pstruBuffer->u32Len);
+
 
     /*start send timer*/
     pstruContoller->pstruMoudleFun->pfunSetTimer(PCT_TIMER_SENDMOUDLE, 
@@ -882,9 +865,8 @@ void PCT_SetTokenKey(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstruBuffer)
     pstruMsg = (ZC_MessageHead*)pstruBuffer->u8MsgBuffer;
     pstruSetKey = (ZC_TokenSetReq *)(pstruMsg + 1);
 
-    pstruContoller->pstruMoudleFun->pfunStoreInfo(1, pstruSetKey->TokenKey, ZC_HS_SESSION_KEY_LEN);
+    ZC_StoreTokenKey(pstruSetKey->TokenKey);
 
-    
     PCT_SendEmptyMsg(pstruMsg->MsgId, ZC_SEC_ALG_AES);
     PCT_SendAckToCloud(pstruMsg->MsgId);
     

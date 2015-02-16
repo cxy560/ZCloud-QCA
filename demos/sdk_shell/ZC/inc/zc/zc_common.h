@@ -60,13 +60,6 @@ typedef volatile unsigned int               vu32;
 
 
 
-extern u32  g_u32WifiConfig;
-extern u32  g_u32TestAddrConfig;
-extern u32  g_u32TestIpAddr;
-extern u8   g_u8ConfigSsid[32];
-extern u8   g_u8ConfigPassword[64];
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -75,7 +68,7 @@ void ZC_TraceData(u8* pData, u32 Len);
 unsigned short crc16_ccitt(const unsigned char *buf, unsigned int len);	
 int rand();
 void ZC_ConfigPara(u8 *pu8Data);
-
+void ZC_Rand(u8 *pu8Rand);
 
 #ifdef __cplusplus
 }

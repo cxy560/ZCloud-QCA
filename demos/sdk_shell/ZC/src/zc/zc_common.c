@@ -13,15 +13,6 @@
 #include <zc_sec_engine.h>
  
 
-u32  g_u32TraceSwitch = 0;
-u32  g_u32LoopFlag = 0;
-u32  g_u32SecSwitch = 1;
-u32  g_u32WifiConfig = 0;
-u32  g_u32TestAddrConfig = 0;
-u32  g_u32TestIpAddr = 0;
-
-u8   g_u8ConfigSsid[32];
-u8   g_u8ConfigPassword[64];
 
 /*************************************************
 * Function: ZC_TraceData
@@ -34,7 +25,7 @@ u8   g_u8ConfigPassword[64];
 void ZC_TraceData(u8* pData, u32 Len)
 {
     u32 Index;
-    if (0 == g_u32TraceSwitch)
+    if (0 == g_struZcConfigDb.struSwitchInfo.u32TraceSwitch)
     {
         return;
     }
@@ -63,27 +54,27 @@ void ZC_TraceData(u8* pData, u32 Len)
 }
 
 /*************************************************
-* Function: ZC_TraceData
+* Function: ZC_Rand
 * Description: 
 * Author: cxy 
 * Returns: 
 * Parameter: 
 * History:
 *************************************************/
-void ZC_ConfigPara(u8 *pu8Data)
+void ZC_Rand(u8 *pu8Rand)
 {
-    ZC_Configuration *pstruConfig;
-    pstruConfig = (ZC_Configuration*)pu8Data;
-    g_u32TraceSwitch = pstruConfig->u32TraceSwitch;
-    g_u32SecSwitch = pstruConfig->u32SecSwitch;
-    g_u32WifiConfig = pstruConfig->u32WifiConfig;
-    g_u32TestAddrConfig = pstruConfig->u32TestAddrConfig;
-    g_u32TestIpAddr = pstruConfig->u32IpAddr;
-    memcpy(g_u8ConfigPassword, pstruConfig->u8Password, 64);
-    memcpy(g_u8ConfigSsid, pstruConfig->u8Ssid, 32);
-
-    
+    u32 u32Rand;
+    u32 u32Index; 
+    for (u32Index = 0; u32Index < 10; u32Index++)
+    {
+        u32Rand = rand();
+        pu8Rand[u32Index * 4] = ((u8)u32Rand % 26) + 65;
+        pu8Rand[u32Index * 4 + 1] = ((u8)(u32Rand >> 8) % 26) + 65;
+        pu8Rand[u32Index * 4 + 2] = ((u8)(u32Rand >> 16) % 26) + 65;
+        pu8Rand[u32Index * 4 + 3] = ((u8)(u32Rand >> 24) % 26) + 65;        
+    }
 }
+
 
 /******************************* FILE END ***********************************/
 

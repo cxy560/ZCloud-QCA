@@ -27,6 +27,14 @@
 
 #define ZC_OTA_MAX_CHUNK_LEN                (384)
 
+#define ZC_SSID_MAX_LEN                     (32)
+
+#define ZC_PASSWORD_MAX_LEN                 (64)
+
+#define ZC_CLOUD_ADDR_MAX_LEN               (20)
+#define ZC_CLOUD_KEY_MAX_LEN                (36)
+
+
 /****************************************************************************************
 *message format: 
 *|ZC_SecHead||ZC_MessageHead||ZC_MessageOptHead||ZC_MessageOption|.......|ZC_MessagePayload|
@@ -108,7 +116,6 @@ typedef enum
     ZC_CODE_CLIENT_QUERY_RSP = 31,
 
     ZC_CODE_TOKEN_SET = 32,
-    ZC_CODE_WRITECONFIG = 33,
 }ZC_MsgCode;
 
 typedef enum 
@@ -243,23 +250,17 @@ typedef struct
     //u8 DeviceId[0];
 }ZC_BlackWhiteClientList;
 
-
-typedef struct
-{
-    u8  u8CloudAddr[20];
-    u8  u8CloudKey[36];
-}ZC_WriteFlashToUpdata;
-
-
 typedef struct
 {
     u32 u32TraceSwitch;     //Trace data switch, 1:open, 0:close,default 0
     u32 u32SecSwitch;       //Sec data switch, 1:open, 0:close, 2:close RSA, default 1
     u32 u32WifiConfig;      //Use Config SSID,password,1:open, 0:close, default 0
     u32 u32TestAddrConfig;  //connect with test url,1:open, 0:"test.ablecloud.cn", 2:use u32IpAddr, default 0
-    u8  u8Ssid[32];
-    u8  u8Password[64];
+    u8  u8Ssid[ZC_SSID_MAX_LEN];
+    u8  u8Password[ZC_PASSWORD_MAX_LEN];
     u32 u32IpAddr;
+    u8  u8CloudAddr[ZC_CLOUD_ADDR_MAX_LEN];
+    u8  u8CloudKey[ZC_CLOUD_KEY_MAX_LEN];
 }ZC_Configuration;
 
 /******************************* Option definition***********************************/
