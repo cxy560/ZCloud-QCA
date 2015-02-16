@@ -66,7 +66,7 @@ extern "C" {
 
 void ZC_TraceData(u8* pData, u32 Len);
 unsigned short crc16_ccitt(const unsigned char *buf, unsigned int len);	
-int rand();
+int rand(void);
 void ZC_ConfigPara(u8 *pu8Data);
 void ZC_Rand(u8 *pu8Rand);
 

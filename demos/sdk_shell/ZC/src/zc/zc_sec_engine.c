@@ -21,12 +21,10 @@
 u32 SEC_EncryptTextByRsa(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len, u16 *pu16CiperLen)
 {
     s32 s32Ret;
-    PTC_ProtocolCon *pstruCon;
     u8 *pu8PublicKey;
     u16 u16ReadLen;
     rsa_context *rsa;
 
-    pstruCon = &g_struProtocolController;
 
     rsa = (rsa_context *)ZC_malloc(sizeof(rsa_context));
     ZC_GetStoreInfor(ZC_GET_TYPE_CLOUDKEY, &pu8PublicKey);
@@ -90,12 +88,10 @@ u32 SEC_DecryptTextByRsa(u8* pu8CiperBuf, u8 *pu8Plainbuf, u16 u16Len, u16 *pu16
     s32 s32len;
     s32 s32Ret;
     u16 u16ReadLen;
-    PTC_ProtocolCon *pstruCon;
     u8 *pu8PrivateKey;
     
     pstruRsa = (rsa_context *)ZC_malloc(sizeof(rsa_context));
 
-    pstruCon = &g_struProtocolController;
     ZC_GetStoreInfor(ZC_GET_TYPE_PRIVATEKEY, &pu8PrivateKey);
 
 

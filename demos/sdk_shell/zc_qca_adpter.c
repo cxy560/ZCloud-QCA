@@ -540,7 +540,7 @@ void QC_BcInit()
     g_struProtocolController.u16SendBcNum = 0;
 
     
-    memset((char*)&struRemoteAddr,0,sizeof(addr));
+    memset((char*)&struRemoteAddr,0,sizeof(struRemoteAddr));
     struRemoteAddr.sin_family = AF_INET; 
     struRemoteAddr.sin_port = htons(ZC_MOUDLE_BROADCAST_PORT); 
     struRemoteAddr.sin_addr.s_addr=htonl(_inet_addr("255.255.255.255")); 

@@ -73,7 +73,7 @@ extern ZC_RegisterInfo g_struRegisterInfo;
 extern "C" {
 #endif
 
-void ZC_ConfigInitPara();
+void ZC_ConfigInitPara(void);
 void ZC_ConfigPara(u8 *pu8Data);
 void ZC_StoreRegisterInfo(u8 *pu8Data);
 void ZC_StoreTokenKey(u8 *pu8Data);

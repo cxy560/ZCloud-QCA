@@ -21,7 +21,7 @@ extern u32 g_u32BcSleepCount;
 #ifdef __cplusplus
 extern "C" {
 #endif
-void ZC_SendBc();
+void ZC_SendBc(void);
 void ZC_SendClientQueryReq(u8 *pu8Msg, u16 u16RecvLen);
 
     
