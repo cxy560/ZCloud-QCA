@@ -37,6 +37,7 @@ u32 ZC_DealSessionOpt(ZC_MessageHead *pstruMsg, ZC_OptList *pstruOptList, u8 *pu
     u8 u8FindFlag = 0;
     u16 u16OptLen = 0;
     u16 crc = 0;
+    u8 u8Iv[ZC_HS_SESSION_KEY_LEN];
 
     pstruSsession = pstruOptList->pstruSsession;
     u32ClientId = ZC_HTONL(pstruSsession->u32SsessionId);
@@ -85,9 +86,11 @@ u32 ZC_DealSessionOpt(ZC_MessageHead *pstruMsg, ZC_OptList *pstruOptList, u8 *pu
     ZC_GetStoreInfor(ZC_GET_TYPE_TOKENKEY, &pu8Key);
 
     u32CiperLen = MSG_BULID_BUFFER_MAXLEN;
+    
+    memcpy(u8Iv, pu8Key, ZC_HS_SESSION_KEY_LEN);
     AES_CBC_Encrypt(g_u8MsgBuildBuffer + sizeof(ZC_SecHead), u16RealLen + sizeof(ZC_MessageHead),
-        pu8Key, 16,
-        pu8Key, 16,
+        pu8Key, ZC_HS_SESSION_KEY_LEN,
+        u8Iv, ZC_HS_SESSION_KEY_LEN,
         g_u8MsgBuildBuffer + sizeof(ZC_SecHead), &u32CiperLen);
     
     /*copy sec head*/

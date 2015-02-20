@@ -479,6 +479,7 @@ void QC_CloudRecvfunc()
                 {   
                     ZC_ClientDisconnect(g_struClientInfo.u32ClientFd[u32Index]);
                     qcom_close(g_struClientInfo.u32ClientFd[u32Index]);
+                    ZC_Printf("close client\n");
                 }
                 
             }
@@ -499,7 +500,7 @@ void QC_CloudRecvfunc()
             }
             else
             {
-                ZC_Printf("accept client = %d", connfd);
+                ZC_Printf("accept client = %d\n", connfd);
             }
         } 
     }
@@ -921,6 +922,7 @@ void QC_Sleep()
     
     g_struUartBuffer.u32RecvLen = 0;
 }
+
 
 /******************************* FILE END *****************/
 
