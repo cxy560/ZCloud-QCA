@@ -20,6 +20,7 @@
 #include <qcom_internal.h>
 #include <socket_api.h>
 #include <select_api.h>
+#include <qcom_gpio.h>
 
 
 
@@ -66,6 +67,10 @@ s32 g_s32StorePartition = 0;//1024 use 4 partition, 512 use 2 partition
 u32 g_u32CloudIp = 0;
 struct sockaddr_in struRemoteAddr;
 
+void qcom_watchdog_feed( void );
+void qcom_watchdog(int enable, int timeout);
+
+
 /*************************************************
 * Function: rand
 * Description: 
@@ -81,7 +86,27 @@ int rand()
     next = next * 1103515245 + 12345;  
     return((unsigned)(next/65536) % 32768);  
 }
+/*************************************************
+* Function: QC_BlinkLight
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void QC_BlinkLight(u32 u32Num)
+{
+    u32 u32Index;
 
+    for (u32Index = 0; u32Index < u32Num; u32Index++)
+    {
+        qcom_gpio_set_pin_low(4);
+        qcom_thread_msleep(100);
+        qcom_gpio_set_pin_high(4);
+        qcom_thread_msleep(100);
+    }
+    qcom_gpio_set_pin_high(4);
+}
 
 /*************************************************
 * Function: QC_LoadPartition
@@ -316,6 +341,9 @@ void QC_Rest(void)
     
     QC_WriteDataToFlash((u8*)&g_struZcConfigDb, sizeof(ZC_ConfigDB));
 
+    QC_BlinkLight(5);
+
+    
     qcom_sys_reset();
 }
 /*************************************************
@@ -375,7 +403,7 @@ void QC_CloudRecvfunc()
     u32ActiveFlag = 0;
     
     timeout.tv_sec= 0; 
-    timeout.tv_usec= 1000; 
+    timeout.tv_usec= 100; 
     
     FD_ZERO(&fdread);
 
@@ -434,7 +462,7 @@ void QC_CloudRecvfunc()
             uartrecv = qcom_uart_read(g_u32UartFd, (char*)g_u8UartBuildBuffer, &bufferlen);
             if (bufferlen > 0)
             {
-                qcom_thread_msleep(100);
+                qcom_thread_msleep(10);
                 ZC_Moudlefunc(g_u8UartBuildBuffer, bufferlen);
             }
         }
@@ -546,7 +574,8 @@ void QC_BcInit()
     struRemoteAddr.sin_port = htons(ZC_MOUDLE_BROADCAST_PORT); 
     struRemoteAddr.sin_addr.s_addr=htonl(_inet_addr("255.255.255.255")); 
     g_pu8RemoteAddr = (u8*)&struRemoteAddr;
-    g_u32BcSleepCount = 800;
+    g_u32BcSleepCount = 15000;
+    
     return;
 }
 
@@ -562,7 +591,6 @@ u32 QC_ConnectToCloud(PTC_Connection *pstruConnection)
 {
     int fd; 
     struct sockaddr_in addr;
-    
     memset((char*)&addr,0,sizeof(addr));
     ZC_Printf("connect to cloud\n");
 
@@ -586,6 +614,8 @@ u32 QC_ConnectToCloud(PTC_Connection *pstruConnection)
 
     
     ZC_Rand(g_struProtocolController.RandMsg);
+
+    qcom_gpio_set_pin_low(4);
 
     return ZC_RET_OK;
 }
@@ -682,6 +712,7 @@ void QC_SetNetwork()
     int retval;
 
     wifi_state = 0;
+    qcom_watchdog(0, 60);
     while(wifi_state != 4)
     {
         QC_CloudRecvfunc();
@@ -737,6 +768,9 @@ void QC_SetNetwork()
         }
         qcom_disconnect();
     }
+
+    qcom_watchdog(2, 60);
+    
 }
 
 /*************************************************
@@ -756,6 +790,14 @@ void QC_Cloudfunc(ULONG which_thread)
     if (g_struZcConfigDb.struConnection.u32MagicFlag != ZC_MAGIC_FLAG)
     {
         sniffer_start(SCAN_CHANNEL_MODE, QC_SnifferSuccess);
+        while(1)
+        {
+            qcom_gpio_set_pin_high(4);
+            qcom_thread_msleep(100);
+            qcom_gpio_set_pin_low(4);
+            qcom_thread_msleep(100);
+            qcom_watchdog_feed();
+        }
     }
     else
     {
@@ -767,15 +809,24 @@ void QC_Cloudfunc(ULONG which_thread)
 
         while(1) 
         {
+            qcom_watchdog_feed();
             fd = g_struProtocolController.struCloudConnection.u32Socket;
             QC_CloudRecvfunc();
             
             PCT_Run();
 
-
+            if (g_struProtocolController.u8MainState < PCT_STATE_CONNECT_CLOUD)
+            {
+                qcom_gpio_set_pin_high(4);
+                qcom_thread_msleep(300);
+                qcom_gpio_set_pin_low(4);
+                qcom_thread_msleep(300);
+            }
+            
             if (PCT_STATE_DISCONNECT_CLOUD == g_struProtocolController.u8MainState)
             {
                 qcom_close(fd);
+                qcom_gpio_set_pin_high(4);
                 u32Timer = (PCT_TIMER_INTERVAL_RECONNECT) * (rand() % 10 + 1);
                 PCT_ReconnectCloud(&g_struProtocolController, u32Timer);
                 g_struUartBuffer.u32Status = MSG_BUFFER_IDLE;
@@ -818,6 +869,8 @@ void QC_UartInit()
     com_uart_cfg.parity = 0;
     com_uart_cfg.FlowControl = 0;
 
+    qcom_gpio_config_pin(4,0,0,0);
+    qcom_gpio_set_pin_high(4);
 
     //qcom_uart_rx_pin_set(6, 10);
     //qcom_uart_tx_pin_set(7, 11);
@@ -841,6 +894,8 @@ void QC_UartInit()
 *************************************************/
 void QC_Init()
 {
+    qcom_watchdog(2, 60);
+
     QC_UartInit();
 
     QC_LoadPartition();
@@ -921,6 +976,8 @@ void QC_Sleep()
     g_struUartBuffer.u32Status = MSG_BUFFER_IDLE;
     
     g_struUartBuffer.u32RecvLen = 0;
+    
+    qcom_gpio_set_pin_high(4);
 }
 
 

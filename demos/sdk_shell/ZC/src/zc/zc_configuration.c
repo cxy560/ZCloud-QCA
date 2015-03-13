@@ -69,10 +69,10 @@ void ZC_ConfigPara(u8 *pu8Data)
     ZC_Configuration *pstruConfig;
     pstruConfig = (ZC_Configuration*)pu8Data;
 
-    g_struZcConfigDb.struSwitchInfo.u32SecSwitch = pstruConfig->u32SecSwitch;
-    g_struZcConfigDb.struSwitchInfo.u32TraceSwitch = pstruConfig->u32TraceSwitch;
-    g_struZcConfigDb.struSwitchInfo.u32WifiConfig = pstruConfig->u32WifiConfig;
-    g_struZcConfigDb.struSwitchInfo.u32TestAddrConfig = pstruConfig->u32TestAddrConfig;
+    g_struZcConfigDb.struSwitchInfo.u32SecSwitch = ZC_HTONL(pstruConfig->u32SecSwitch);
+    g_struZcConfigDb.struSwitchInfo.u32TraceSwitch = ZC_HTONL(pstruConfig->u32TraceSwitch);
+    g_struZcConfigDb.struSwitchInfo.u32WifiConfig = ZC_HTONL(pstruConfig->u32WifiConfig);
+    g_struZcConfigDb.struSwitchInfo.u32TestAddrConfig = ZC_HTONL(pstruConfig->u32TestAddrConfig);
 
     g_struZcConfigDb.struSwitchInfo.u32ServerIp = pstruConfig->u32IpAddr;
     memcpy(g_struZcConfigDb.struSwitchInfo.u8Password, pstruConfig->u8Password, ZC_PASSWORD_MAX_LEN);
