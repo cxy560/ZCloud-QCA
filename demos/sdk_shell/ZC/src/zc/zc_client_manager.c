@@ -291,7 +291,7 @@ void ZC_RecvDataFromClient(u32 ClientId, u8 *pu8Data, u32 u32DataLen)
             u16Len += ZC_HTONS(pstruMsg->Payloadlen) - (sizeof(ZC_MessageOptHead) + sizeof(struSessionMsg));     
             g_struClientBuffer.u32Len = u16Len;
 
-            crc = crc16_ccitt(g_struClientBuffer.u8MsgBuffer+sizeof(ZC_MessageHead),u16Len);
+            crc = crc16_ccitt(g_struClientBuffer.u8MsgBuffer+sizeof(ZC_MessageHead),u16Len - sizeof(ZC_MessageHead));
             pstruMsg =  (ZC_MessageHead*)(g_struClientBuffer.u8MsgBuffer);
             pstruMsg->TotalMsgCrc[0]=(crc&0xff00)>>8;
             pstruMsg->TotalMsgCrc[1]=(crc&0xff);
