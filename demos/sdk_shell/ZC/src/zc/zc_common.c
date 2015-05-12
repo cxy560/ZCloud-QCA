@@ -64,8 +64,8 @@ void ZC_TraceData(u8* pData, u32 Len)
 void ZC_Rand(u8 *pu8Rand)
 {
     u32 u32Rand;
-    u32 u32Index; 
-    for (u32Index = 0; u32Index < 10; u32Index++)
+    u32 u32Index;  
+    for (u32Index = 0; u32Index < (ZC_HS_MSG_LEN/4); u32Index++)
     {
         u32Rand = rand();
         pu8Rand[u32Index * 4] = ((u8)u32Rand % 26) + 65;

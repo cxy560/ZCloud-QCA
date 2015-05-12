@@ -444,7 +444,9 @@ void PCT_RecvAccessMsg2(PTC_ProtocolCon *pstruContoller)
     MSG_Buffer *pstruBuffer;
     ZC_MessageHead *pstruMsg;
     ZC_HandShakeMsg2 *pstruMsg2;
- 
+    ZC_AccessPoint *pstruAccessPoint;
+    u32 u32Addr;
+    u16 u16Port;
     pstruBuffer = (MSG_Buffer *)MSG_PopMsg(&g_struRecvQueue);
     if (NULL == pstruBuffer)
     {
@@ -454,7 +456,7 @@ void PCT_RecvAccessMsg2(PTC_ProtocolCon *pstruContoller)
     pstruMsg = (ZC_MessageHead*)pstruBuffer->u8MsgBuffer;
     pstruMsg2 = (ZC_HandShakeMsg2*)(pstruMsg + 1);
 
-    if (ZC_CODE_HANDSHAKE_2 == pstruMsg->MsgCode)
+    if ((ZC_CODE_HANDSHAKE_2 == pstruMsg->MsgCode)||(ZC_CODE_ACCESS_POINT_RSP == pstruMsg->MsgCode))
     {
         if (ZC_RET_ERROR == PCT_CheckCrc(pstruMsg->TotalMsgCrc, (u8*)pstruMsg2, ZC_HTONS(pstruMsg->Payloadlen)))
         {
@@ -465,13 +467,26 @@ void PCT_RecvAccessMsg2(PTC_ProtocolCon *pstruContoller)
             TIMER_StopTimer(pstruContoller->u8AccessTimer);
             if (0 == memcmp(pstruMsg2->RandMsg, pstruContoller->RandMsg, ZC_HS_MSG_LEN))
             {
-                memcpy(pstruContoller->u8SessionKey, pstruMsg2->SessionKey, ZC_HS_SESSION_KEY_LEN);
-                memcpy(pstruContoller->IvRecv, pstruMsg2->SessionKey, ZC_HS_SESSION_KEY_LEN);
-                memcpy(pstruContoller->IvSend, pstruMsg2->SessionKey, ZC_HS_SESSION_KEY_LEN);
+                if (ZC_CODE_HANDSHAKE_2 == pstruMsg->MsgCode)
+                {
+                    memcpy(pstruContoller->u8SessionKey, pstruMsg2->SessionKey, ZC_HS_SESSION_KEY_LEN);
+                    memcpy(pstruContoller->IvRecv, pstruMsg2->SessionKey, ZC_HS_SESSION_KEY_LEN);
+                    memcpy(pstruContoller->IvSend, pstruMsg2->SessionKey, ZC_HS_SESSION_KEY_LEN);
 
-                PCT_SendCloudAccessMsg3(pstruContoller);
+                    PCT_SendCloudAccessMsg3(pstruContoller);
                 
-                ZC_Printf("Recv Msg2 ok\n");
+                    ZC_Printf("Recv Msg2 ok\n");
+                }
+                else
+                {
+                    pstruAccessPoint=(ZC_AccessPoint*)(pstruMsg + 1);
+                    u32Addr = ZC_HTONL(pstruAccessPoint->u32ServerAddr);
+                    u16Port = ZC_HTONS(pstruAccessPoint->u16ServerPort);
+
+                    ZC_StoreAccessInfo((u8 *)&u32Addr,(u8 *)&u16Port);
+                    PCT_DisConnectCloud(pstruContoller);
+                    ZC_Printf("Recv Access Point ok,Cloud Addr=%x,port=%x!\n",u32Addr,u16Port);
+                }
             }
             else
             {
@@ -821,10 +836,7 @@ void PCT_HandleMoudleMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstruBuffe
     pstruMsg = (ZC_MessageHead*)pstruBuffer->u8MsgBuffer;
 
 
-    /*Send to Moudle*/
-    pstruContoller->pstruMoudleFun->pfunSendToMoudle((u8*)pstruMsg, pstruBuffer->u32Len);
-
-
+  
     /*start send timer*/
     pstruContoller->pstruMoudleFun->pfunSetTimer(PCT_TIMER_SENDMOUDLE, 
         PCT_TIMER_INTERVAL_SENDMOUDLE, &pstruContoller->u8SendMoudleTimer);
@@ -838,6 +850,12 @@ void PCT_HandleMoudleMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstruBuffe
 
     pstruContoller->pu8SendMoudleBuffer = (u8*)&g_struRetxBuffer;
     pstruContoller->u8ReSendMoudleNum = 0;
+
+	  /*Send to Moudle*/
+    pstruContoller->pstruMoudleFun->pfunSendToMoudle((u8*)pstruMsg, pstruBuffer->u32Len);
+
+
+
 
     /*restart heart timer*/
     if (PCT_TIMER_INVAILD != pstruContoller->u8HeartTimer)
@@ -872,6 +890,30 @@ void PCT_SetTokenKey(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstruBuffer)
     
     return;
 }
+
+/*************************************************
+* Function: PCT_ResetNetWork
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void PCT_ResetNetWork(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstruBuffer)
+{
+    ZC_MessageHead *pstruMsg;
+
+    pstruMsg = (ZC_MessageHead*)pstruBuffer->u8MsgBuffer;
+
+    ZC_ConfigInitPara();
+    PCT_DisConnectCloud(pstruContoller);
+
+    PCT_SendEmptyMsg(pstruMsg->MsgId, ZC_SEC_ALG_AES);
+    PCT_SendAckToCloud(pstruMsg->MsgId);
+    
+    return;
+}
+
 /*************************************************
 * Function: PCT_HandleEvent
 * Description: 
@@ -937,6 +979,9 @@ void PCT_HandleEvent(PTC_ProtocolCon *pstruContoller)
             break;
         case ZC_CODE_TOKEN_SET:
             PCT_SetTokenKey(pstruContoller, pstruBuffer);
+            break;
+        case ZC_CODE_RESET_NETWORK:
+            PCT_ResetNetWork(pstruContoller, pstruBuffer);
             break;
         default:
             PCT_HandleMoudleMsg(pstruContoller, pstruBuffer);

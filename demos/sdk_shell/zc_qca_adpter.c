@@ -52,6 +52,7 @@ u8 g_u8recvbuffer[QC_MAX_SOCKET_LEN];
 ZC_UartBuffer g_struUartBuffer;
 QC_TimerInfo g_struQcTimer[ZC_TIMER_MAX_NUM];
 u8  g_u8BcSendBuffer[100];
+u32 g_u32BcSleepCount = 800;
 
 u32      g_u32UartFd = PCT_INVAILD_SOCKET;
 
@@ -311,8 +312,16 @@ u32 QC_SendDataToMoudle(u8 *pu8Data, u16 u16DataLen)
 * Parameter: 
 * History:
 *************************************************/
-void QC_SnifferSuccess(char *ssid, char *password, unsigned char response)
+void QC_SnifferSuccess(char *ssid, char *password, unsigned char response, tSuccessMode_Type tmode)
 {
+    if (tmode == AIRKISS)
+    {
+        ZC_Printf("airkiss ");
+    }
+    else
+    {
+        ZC_Printf("sniffer ");
+    }
     ZC_Printf("sniffer_success:\n");
     ZC_Printf("ssid: %s\n", ssid);
     ZC_Printf("password: %s\n", password);
@@ -589,23 +598,40 @@ void QC_BcInit()
 *************************************************/
 u32 QC_ConnectToCloud(PTC_Connection *pstruConnection)
 {
-    int fd; 
+    int fd;
+    u16 port;  
     struct sockaddr_in addr;
+    u32 u32CloudIp;
     memset((char*)&addr,0,sizeof(addr));
     ZC_Printf("connect to cloud\n");
-
+    if (1 == g_struZcConfigDb.struSwitchInfo.u32ServerAddrConfig)
+    {
+        port = g_struZcConfigDb.struSwitchInfo.u16ServerPort; 
+        u32CloudIp = g_struZcConfigDb.struSwitchInfo.u32ServerIp;
+    }
+    else
+    {
+        port = pstruConnection->u16Port; 
+        u32CloudIp = g_u32CloudIp;
+    }
+   
+    ZC_Printf("connect ip = 0x%x,port = %d!\n",u32CloudIp,port);
     memset(&addr, 0, sizeof (struct sockaddr_in));   
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(ZC_CLOUD_PORT);
-    addr.sin_addr.s_addr = htonl(g_u32CloudIp);
+    addr.sin_port = htons(port);
+    addr.sin_addr.s_addr = htonl(u32CloudIp);
     fd = qcom_socket(AF_INET, SOCK_STREAM, 0);
 
     if(fd<0)
         return ZC_RET_ERROR;
-    
-    if (qcom_connect(fd, (struct sockaddr *)&addr, sizeof(addr))< 0)
+
+    if(qcom_connect(fd, (struct sockaddr *)&addr, sizeof(addr))< 0)
     {
         qcom_close(fd);
+        if(g_struProtocolController.struCloudConnection.u32ConnectionTimes++>20)
+        {
+           g_struZcConfigDb.struSwitchInfo.u32ServerAddrConfig = 0;
+        }
         return ZC_RET_ERROR;
     }
 
@@ -721,8 +747,8 @@ void QC_SetNetwork()
 
         if (0 == g_struZcConfigDb.struSwitchInfo.u32WifiConfig)
         {
-            qcom_sec_set_passphrase((char*)g_struZcConfigDb.struConnection.u8Password);
-            qcom_sta_connect_with_scan((char*)g_struZcConfigDb.struConnection.u8Ssid);
+            qcom_sec_set_passphrase((char*)g_struZcConfigDb.struConnection.u8Ssid);
+            qcom_sta_connect_with_scan((char*)g_struZcConfigDb.struConnection.u8Password);
         }
         else
         {
@@ -741,28 +767,19 @@ void QC_SetNetwork()
             while(0 == g_u32CloudIp)
             {
                 QC_CloudRecvfunc();
-                if (1 == g_struZcConfigDb.struSwitchInfo.u32TestAddrConfig)
-                {
-                    retval = qcom_dnsc_get_host_by_name((A_CHAR *)"test.ablecloud.cn", &g_u32CloudIp);
-                }
-                else if (2 == g_struZcConfigDb.struSwitchInfo.u32TestAddrConfig)
-                {
-                    g_u32CloudIp = g_struZcConfigDb.struSwitchInfo.u32ServerIp;
-                    retval = A_OK;
-                }
-                else
-                {
-                    retval = qcom_dnsc_get_host_by_name((A_CHAR *)g_struZcConfigDb.struCloudInfo.u8CloudAddr, &g_u32CloudIp);
-                }
+
+                retval = qcom_dnsc_get_host_by_name((A_CHAR *)g_struZcConfigDb.struCloudInfo.u8CloudAddr, &g_u32CloudIp);
+
                 if (A_OK != retval)
                 {
                     g_u32CloudIp = 0;
                     continue;
                 }    
             }
-            ZC_Printf("cloud ip = %d\n", g_u32CloudIp);
+         
+            ZC_Printf("cloud ip = 0x%x\n", g_u32CloudIp);
             ZC_Printf("Connect with wifi\n");
-            
+          
             QC_WakeUp();
             break;
         }
@@ -789,7 +806,8 @@ void QC_Cloudfunc(ULONG which_thread)
 
     if (g_struZcConfigDb.struConnection.u32MagicFlag != ZC_MAGIC_FLAG)
     {
-        sniffer_start(SCAN_CHANNEL_MODE, QC_SnifferSuccess);
+        qca_set_sniffer_en(EN_ALL);
+        qca_sniffer_start(SCAN_CHANNEL_MODE, QC_SnifferSuccess);
         while(1)
         {
             qcom_gpio_set_pin_high(4);

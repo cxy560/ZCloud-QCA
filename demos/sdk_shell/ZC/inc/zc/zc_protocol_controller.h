@@ -68,6 +68,7 @@ typedef struct
     u8  u8IpType;             /*IP Type,IPV6,IPV4*/
     u8  u8ConnectionType;
     u16 u16Port;
+    u32 u32ConnectionTimes;
 }PTC_Connection;
 
 typedef struct

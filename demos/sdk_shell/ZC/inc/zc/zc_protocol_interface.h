@@ -11,8 +11,8 @@
 #define  __ZC_PROTOCOL_INTERFACE_H__
 #include <zc_common.h>
 
-#define ZC_HS_MSG_LEN                       (40)
-#define ZC_HS_DEVICE_ID_LEN                 (8)
+#define ZC_HS_MSG_LEN                       (32)
+#define ZC_HS_DEVICE_ID_LEN                 (16)
 #define ZC_HS_SESSION_KEY_LEN               (16)
 #define ZC_HS_SESSION_IV_LEN                (16)
 #define ZC_MODULE_KEY_LEN                   (112)
@@ -34,6 +34,8 @@
 #define ZC_CLOUD_ADDR_MAX_LEN               (20)
 #define ZC_CLOUD_KEY_MAX_LEN                (36)
 
+#define ZC_SERVER_ADDR_MAX_LEN               (4)
+#define ZC_SERVER_PORT_MAX_LEN               (2)
 
 /****************************************************************************************
 *message format: 
@@ -116,6 +118,8 @@ typedef enum
     ZC_CODE_CLIENT_QUERY_RSP = 31,
 
     ZC_CODE_TOKEN_SET = 32,
+    ZC_CODE_ACCESS_POINT_RSP = 33,
+    ZC_CODE_RESET_NETWORK = 34,
 }ZC_MsgCode;
 
 typedef enum 
@@ -174,6 +178,15 @@ typedef struct
     u8 TokenKey[ZC_HS_SESSION_KEY_LEN];
 }ZC_TokenSetReq;
 
+typedef struct
+{
+    u8 RandMsg[ZC_HS_MSG_LEN];
+    u32 u32ServerAddr;
+    u16 u16ServerPort;
+    u16 u16Pad;
+}ZC_AccessPoint;
+
+
 /*msg code: ZC_CODE_DESCRIBE*/
 typedef struct 
 {
@@ -215,6 +228,7 @@ typedef struct
 /*BC info£¬ send after connect with cloud£¬ in PCT_SEND_BC_MAX_NUM*/
 typedef struct
 {
+    u8 u8Domain[ZC_DOMAIN_LEN];
     u8 DeviceId[ZC_HS_DEVICE_ID_LEN];
     u8 RandMsg[ZC_HS_MSG_LEN];
 }ZC_BroadCastInfo;
@@ -255,12 +269,14 @@ typedef struct
     u32 u32TraceSwitch;     //Trace data switch, 1:open, 0:close,default 0
     u32 u32SecSwitch;       //Sec data switch, 1:open, 0:close, 2:close RSA, default 1
     u32 u32WifiConfig;      //Use Config SSID,password,1:open, 0:close, default 0
-    u32 u32TestAddrConfig;  //connect with test url,1:open, 0:"test.ablecloud.cn", 2:use u32IpAddr, default 0
+    u32 u32ServerAddrConfig;  //connect with test url,0:dns, 1:use u32IpAddr, default 0
     u8  u8Ssid[ZC_SSID_MAX_LEN];
     u8  u8Password[ZC_PASSWORD_MAX_LEN];
     u32 u32IpAddr;
     u8  u8CloudAddr[ZC_CLOUD_ADDR_MAX_LEN];
     u8  u8CloudKey[ZC_CLOUD_KEY_MAX_LEN];
+    u16 u16Port;
+    u16 u16Pad;
 }ZC_Configuration;
 
 /******************************* Option definition***********************************/

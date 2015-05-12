@@ -18,7 +18,8 @@ typedef signed   short                      s16;
 typedef signed   int                        s32;                                
 typedef unsigned char                       u8;                                 
 typedef unsigned short                      u16;                                
-typedef unsigned int                        u32;                                
+typedef unsigned int                        u32; 
+typedef unsigned long long                  u64;   
 typedef volatile signed char                vs8;                                
 typedef volatile signed short               vs16;                               
 typedef volatile signed int                 vs32;                               
@@ -26,7 +27,7 @@ typedef volatile unsigned char              vu8;
 typedef volatile unsigned short             vu16;                               
 typedef volatile unsigned int               vu32;      
 
-#define     ZC_CLOUD_PORT                                    (9000)
+#define     ZC_CLOUD_PORT                                    (9100)
 #define     ZC_MOUDLE_PORT                                   (7689)
 #define     ZC_MOUDLE_BROADCAST_PORT                         (8689)
 #define     ZC_SERVER_PORT                                   (9689)

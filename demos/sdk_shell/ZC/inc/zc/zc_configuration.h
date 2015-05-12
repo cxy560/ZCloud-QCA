@@ -28,12 +28,14 @@ typedef struct
     u32 u32TraceSwitch;     //Trace data switch, 1:open, 0:close,default 0
     u32 u32SecSwitch;       //Sec data switch, 1:open, 0:close, 2:close RSA, default 1
     u32 u32WifiConfig;      //Use Config SSID,password,1:open, 0:close, default 0
-    u32 u32TestAddrConfig;  //connect with test url,0:open, 1:"test.ablecloud.cn", 2:use u32IpAddr, default 0
+    u32 u32ServerAddrConfig;  //connect with test url,0:dns, 1:use u32IpAddr, default 0
 
     u8 u8Ssid[ZC_SSID_MAX_LEN];
     u8 u8Password[ZC_PASSWORD_MAX_LEN];
 
     u32 u32ServerIp;        //use if wifconfig is 1;
+    u16 u16ServerPort;      //use if wifconfig is 1;
+    u16 u16Pad;      //use if wifconfig is 1;
 }ZC_SwitchInfo;
 
 typedef struct 
@@ -79,11 +81,10 @@ void ZC_StoreRegisterInfo(u8 *pu8Data);
 void ZC_StoreTokenKey(u8 *pu8Data);
 void ZC_StoreConnectionInfo(u8 *pu8Ssid, u8 *pu8Password);
 void ZC_GetStoreInfor(u8 u8Type, u8 **pu8Data);
-
+void ZC_StoreAccessInfo(u8 *pu8ServerIp, u8 *pu8ServerPort);
 #ifdef __cplusplus
 }
 #endif
-
 #endif
 /******************************* FILE END ***********************************/
 

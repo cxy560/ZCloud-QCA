@@ -13,7 +13,7 @@
 #include <zc_common.h>
 #include <zc_protocol_controller.h>
 
-#define      ZC_VERSION       (0)
+#define      ZC_VERSION       (1)
 
 typedef struct 
 {

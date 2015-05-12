@@ -12,7 +12,7 @@
 int g_Bcfd = 0;
 u8* g_pu8RemoteAddr = NULL;
 unsigned int g_u32GloablIp;
-u32 g_u32BcSleepCount = 800;
+extern u32 g_u32BcSleepCount;
 /*************************************************
 * Function: ZC_SendBc
 * Description: 

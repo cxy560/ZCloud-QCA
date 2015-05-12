@@ -14,14 +14,14 @@ ZC_ConfigDB g_struZcConfigDb;
 ZC_RegisterInfo g_struRegisterInfo;
 u8 g_u8DefaultCloudKey[ZC_CLOUD_KEY_MAX_LEN] = 
 {
-    0xb0, 0x7e, 0xab, 0x09,
-    0x73, 0x4e, 0x78, 0x12,
-    0x7e, 0x8c, 0x54, 0xcd,
-    0xbb, 0x93, 0x3c, 0x16,
-    0x96, 0x23, 0xaf, 0x7a,
-    0xfc, 0xd2, 0x8b, 0xd1,
-    0x43, 0xa2, 0xbb, 0xc8,
-    0x77, 0xa0, 0xca, 0xcd,
+    0xb8, 0xd9, 0x35, 0xe4,
+    0xd6, 0xd8, 0xf2, 0xd6,
+    0xc8, 0x28, 0x2f, 0x9f,
+    0xd9, 0x62, 0x48, 0xc7,
+    0x96, 0xa9, 0xed, 0x5b,
+    0x5a, 0x1a, 0x95, 0x59,
+    0xd2, 0x3c, 0xbb, 0x5f,
+    0x1b, 0x03, 0x07, 0x3f,
     0x01, 0x00, 0x01, 0x00
 };
 u8 g_u8DefaultTokenKey[ZC_HS_SESSION_KEY_LEN] = 
@@ -46,9 +46,10 @@ void ZC_ConfigInitPara()
     g_struZcConfigDb.struSwitchInfo.u32SecSwitch = 1;
     g_struZcConfigDb.struSwitchInfo.u32TraceSwitch = 0;
     g_struZcConfigDb.struSwitchInfo.u32WifiConfig = 0;
-    g_struZcConfigDb.struSwitchInfo.u32TestAddrConfig = 0;
+    g_struZcConfigDb.struSwitchInfo.u32ServerAddrConfig = 0;
+    g_struZcConfigDb.struSwitchInfo.u16ServerPort = ZC_CLOUD_PORT;
 
-    memcpy(g_struZcConfigDb.struCloudInfo.u8CloudAddr, "www.ablecloud.cn", ZC_CLOUD_ADDR_MAX_LEN);
+    memcpy(g_struZcConfigDb.struCloudInfo.u8CloudAddr, "device.ablecloud.cn", ZC_CLOUD_ADDR_MAX_LEN);
     memcpy(g_struZcConfigDb.struCloudInfo.u8CloudKey, g_u8DefaultCloudKey, ZC_CLOUD_KEY_MAX_LEN);
     memcpy(g_struZcConfigDb.struCloudInfo.u8TokenKey, g_u8DefaultTokenKey, ZC_HS_SESSION_KEY_LEN);
 
@@ -72,9 +73,11 @@ void ZC_ConfigPara(u8 *pu8Data)
     g_struZcConfigDb.struSwitchInfo.u32SecSwitch = ZC_HTONL(pstruConfig->u32SecSwitch);
     g_struZcConfigDb.struSwitchInfo.u32TraceSwitch = ZC_HTONL(pstruConfig->u32TraceSwitch);
     g_struZcConfigDb.struSwitchInfo.u32WifiConfig = ZC_HTONL(pstruConfig->u32WifiConfig);
-    g_struZcConfigDb.struSwitchInfo.u32TestAddrConfig = ZC_HTONL(pstruConfig->u32TestAddrConfig);
+    g_struZcConfigDb.struSwitchInfo.u32ServerAddrConfig = ZC_HTONL(pstruConfig->u32ServerAddrConfig);
 
-    g_struZcConfigDb.struSwitchInfo.u32ServerIp = pstruConfig->u32IpAddr;
+    g_struZcConfigDb.struSwitchInfo.u32ServerIp = ZC_HTONL(pstruConfig->u32IpAddr);
+    g_struZcConfigDb.struSwitchInfo.u16ServerPort = ZC_HTONS(pstruConfig->u16Port);
+
     memcpy(g_struZcConfigDb.struSwitchInfo.u8Password, pstruConfig->u8Password, ZC_PASSWORD_MAX_LEN);
     memcpy(g_struZcConfigDb.struSwitchInfo.u8Ssid, pstruConfig->u8Ssid, ZC_SSID_MAX_LEN);
     
@@ -131,8 +134,27 @@ void ZC_StoreConnectionInfo(u8 *pu8Ssid, u8 *pu8Password)
     g_struZcConfigDb.struConnection.u32MagicFlag = ZC_MAGIC_FLAG;
     memcpy(g_struZcConfigDb.struConnection.u8Ssid, pu8Ssid, ZC_SSID_MAX_LEN);
     memcpy(g_struZcConfigDb.struConnection.u8Password, pu8Password, ZC_PASSWORD_MAX_LEN);
+
     g_struProtocolController.pstruMoudleFun->pfunWriteFlash((u8*)&g_struZcConfigDb, sizeof(ZC_ConfigDB));
 }
+
+/*************************************************
+* Function: ZC_StoreConnectionInfo
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void ZC_StoreAccessInfo(u8 *pu8ServerIp, u8 *pu8ServerPort)
+{
+    g_struZcConfigDb.struConnection.u32MagicFlag = ZC_MAGIC_FLAG;
+    g_struZcConfigDb.struSwitchInfo.u32ServerAddrConfig = 1;
+    memcpy(&g_struZcConfigDb.struSwitchInfo.u32ServerIp, pu8ServerIp, ZC_SERVER_ADDR_MAX_LEN);
+    memcpy(&g_struZcConfigDb.struSwitchInfo.u16ServerPort, pu8ServerPort, ZC_SERVER_PORT_MAX_LEN);
+    g_struProtocolController.pstruMoudleFun->pfunWriteFlash((u8*)&g_struZcConfigDb, sizeof(ZC_ConfigDB));
+}
+
 /*************************************************
 * Function: ZC_GetStoreInfor
 * Description: 
