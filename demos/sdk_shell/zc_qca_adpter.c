@@ -747,13 +747,13 @@ void QC_SetNetwork()
 
         if (0 == g_struZcConfigDb.struSwitchInfo.u32WifiConfig)
         {
-            qcom_sec_set_passphrase((char*)g_struZcConfigDb.struConnection.u8Ssid);
-            qcom_sta_connect_with_scan((char*)g_struZcConfigDb.struConnection.u8Password);
+            qcom_sta_connect_with_scan((char*)g_struZcConfigDb.struConnection.u8Ssid);
+            qcom_sec_set_passphrase((char*)g_struZcConfigDb.struConnection.u8Password);
         }
         else
         {
-            qcom_sec_set_passphrase((char*)g_struZcConfigDb.struSwitchInfo.u8Ssid);
-            qcom_sta_connect_with_scan((char*)g_struZcConfigDb.struSwitchInfo.u8Password);
+            qcom_sta_connect_with_scan((char*)g_struZcConfigDb.struSwitchInfo.u8Ssid);
+            qcom_sec_set_passphrase((char*)g_struZcConfigDb.struSwitchInfo.u8Password);
         }
         qcom_thread_msleep(5000);
 
