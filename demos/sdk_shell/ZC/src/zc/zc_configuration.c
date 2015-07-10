@@ -95,13 +95,23 @@ void ZC_ConfigPara(u8 *pu8Data)
 * Parameter: 
 * History:
 *************************************************/
-void ZC_StoreRegisterInfo(u8 *pu8Data)
+void ZC_StoreRegisterInfo(u8 *pu8Data,u8 u8RegisterFlag)
 {
     ZC_RegisterReq *pstruRegisterMsg;
+    u8 u8Mac[ZC_SERVER_MAC_LEN];
     pstruRegisterMsg = (ZC_RegisterReq *)pu8Data;
     
     memcpy(g_struRegisterInfo.u8PrivateKey, pstruRegisterMsg->u8ModuleKey, ZC_MODULE_KEY_LEN);
-    memcpy(g_struRegisterInfo.u8DeviciId, pstruRegisterMsg->u8DeviceId, ZC_HS_DEVICE_ID_LEN);
+    if(u8RegisterFlag)
+	{
+        memset(g_struRegisterInfo.u8DeviciId, '0', ZC_HS_DEVICE_ID_LEN);
+		g_struProtocolController.pstruMoudleFun->pfunGetMac(u8Mac);
+		memcpy(g_struRegisterInfo.u8DeviciId + (ZC_HS_DEVICE_ID_LEN - ZC_SERVER_MAC_LEN), u8Mac, ZC_SERVER_MAC_LEN);
+	}
+	else
+	{
+		memcpy(g_struRegisterInfo.u8DeviciId, pstruRegisterMsg->u8DeviceId, ZC_HS_DEVICE_ID_LEN);
+	}
     memcpy(g_struRegisterInfo.u8DeviciId + ZC_HS_DEVICE_ID_LEN, pstruRegisterMsg->u8Domain, ZC_DOMAIN_LEN);
     memcpy(g_struRegisterInfo.u8EqVersion, pstruRegisterMsg->u8EqVersion, ZC_EQVERSION_LEN);
 }

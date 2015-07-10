@@ -37,6 +37,7 @@
 #define ZC_SERVER_ADDR_MAX_LEN               (4)
 #define ZC_SERVER_PORT_MAX_LEN               (2)
 
+#define ZC_SERVER_MAC_LEN                    (12)
 /****************************************************************************************
 *message format: 
 *|ZC_SecHead||ZC_MessageHead||ZC_MessageOptHead||ZC_MessageOption|.......|ZC_MessagePayload|
@@ -62,6 +63,13 @@ typedef struct
     u8  TotalMsgCrc[2];
     
 }ZC_MessageHead;
+
+/*ACloud Ext Message*/
+typedef struct
+{
+    u8  ExtMsgCode;
+    u8  Pad[3];            
+}ZC_ExtMessageHead;
 
 /*ZCloud Option Head*/
 typedef struct
@@ -120,7 +128,17 @@ typedef enum
     ZC_CODE_TOKEN_SET = 32,
     ZC_CODE_ACCESS_POINT_RSP = 33,
     ZC_CODE_RESET_NETWORK = 34,
+	
+	ZC_CODE_OTA_CONFIRM = 35,
+	
+	ZC_CODE_EXT = 63, 
 }ZC_MsgCode;
+
+/*ZCloud Message Ext code*/
+typedef enum 
+{
+    ZC_CODE_EXT_REGSITER = 0,
+}ZC_Ext_MsgCode;
 
 typedef enum 
 {

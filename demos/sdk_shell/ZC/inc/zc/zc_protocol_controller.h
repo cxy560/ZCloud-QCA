@@ -95,7 +95,7 @@ typedef u32 (*pFunListenClient)(PTC_Connection *pstruConnection);
 typedef u32 (*pFunSetTimer)(u8 u8Type, u32 Interval, u8 *pu8Index);
 typedef void (*pFunStopTimer)(u8 u8TimerIndex);
 typedef void (*pFunRest)(void);
-
+typedef void (*pFunGetMac)(u8 *pu8Mac);
 
 typedef struct
 {
@@ -112,6 +112,7 @@ typedef struct
     pFunSetTimer                pfunSetTimer;
     pFunStopTimer               pfunStopTimer;
     pFunWriteFlashData          pfunWriteFlash;
+    pFunGetMac                  pfunGetMac;
 }PTC_ModuleAdapter;
 
 typedef struct

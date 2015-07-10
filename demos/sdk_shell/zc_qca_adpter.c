@@ -68,6 +68,9 @@ s32 g_s32StorePartition = 0;//1024 use 4 partition, 512 use 2 partition
 u32 g_u32CloudIp = 0;
 struct sockaddr_in struRemoteAddr;
 
+u8 g_u8UartSendBuffer[1024];
+u16 g_u16UartSendLen = 0;
+
 void qcom_watchdog_feed( void );
 void qcom_watchdog(int enable, int timeout);
 
@@ -295,14 +298,68 @@ u32 QC_FirmwareUpdate(u8 *pu8FileData, u32 u32Offset, u32 u32DataLen)
 u32 QC_SendDataToMoudle(u8 *pu8Data, u16 u16DataLen)
 {
     u8 u8MagicFlag[4] = {0x02,0x03,0x04,0x05};
-    A_UINT32 u32OutLen;
+    u32 u32OutLen;
 
+    if ((g_u16UartSendLen + u16DataLen + 4) > 1024)
+    {
+        ZC_Printf("use len too big = %d\n", g_u16UartSendLen);
+        return ZC_RET_ERROR;
+    }
+        
     u32OutLen = 4;
-    qcom_uart_write(g_u32UartFd,(char*)u8MagicFlag,&u32OutLen); 
+    
+    memcpy(g_u8UartSendBuffer + g_u16UartSendLen,(char*)u8MagicFlag, u32OutLen);
+    g_u16UartSendLen += u32OutLen;
 
-    u32OutLen = u16DataLen;   
-    qcom_uart_write(g_u32UartFd,(char*)pu8Data,&u32OutLen); 
+    memcpy(g_u8UartSendBuffer + g_u16UartSendLen,(char*)pu8Data, u16DataLen); 
+    g_u16UartSendLen += u16DataLen;
+    
     return ZC_RET_OK;
+}
+
+
+/*************************************************
+* Function: QC_SendUartData
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+u32 QC_SendUartData()
+{
+    u32 u32OutLen;
+    u8 *u8TmpSendbuffer;
+    u32 u32TotalSendLen;
+
+    if (g_u16UartSendLen > 0)
+    {
+        u32OutLen = 0;
+
+        u8TmpSendbuffer = g_u8UartSendBuffer;
+        
+        u32TotalSendLen = 0;
+        
+        while(u32TotalSendLen < ((u32)g_u16UartSendLen))
+        {
+            u32OutLen = ((u32)g_u16UartSendLen) - u32TotalSendLen;
+            
+            qcom_uart_write(g_u32UartFd,(char*)u8TmpSendbuffer,&u32OutLen);
+
+            u8TmpSendbuffer = u8TmpSendbuffer + u32OutLen;
+            u32TotalSendLen = u32TotalSendLen + u32OutLen;
+            if (u32TotalSendLen < ((u32)g_u16UartSendLen))
+            {
+                qcom_thread_msleep(100);
+            }
+        }
+        
+        g_u16UartSendLen = 0;
+
+        return ZC_RET_OK;
+    }
+
+    return ZC_RET_ERROR;
 }
 /*************************************************
 * Function: QC_SnifferSuccess
@@ -404,6 +461,7 @@ void QC_CloudRecvfunc()
     struct sockaddr_in addr;
     int tmp=1;
     int fd_act = 0;
+    u32 u32UartReadLen;
     A_UINT32 uartrecv = MSG_BULID_BUFFER_MAXLEN;
     A_UINT32 bufferlen = MSG_BULID_BUFFER_MAXLEN;
 
@@ -467,13 +525,27 @@ void QC_CloudRecvfunc()
     {
         if (FD_ISSET(g_u32UartFd, &fdread))
         {
+            qcom_thread_msleep(100);
             bufferlen = MSG_BULID_BUFFER_MAXLEN;
-            uartrecv = qcom_uart_read(g_u32UartFd, (char*)g_u8UartBuildBuffer, &bufferlen);
-            if (bufferlen > 0)
+            uartrecv = MSG_BULID_BUFFER_MAXLEN;
+            u32UartReadLen = 0;
+            while(uartrecv > 0)
             {
-                qcom_thread_msleep(10);
-                ZC_Moudlefunc(g_u8UartBuildBuffer, bufferlen);
+                uartrecv = qcom_uart_read(g_u32UartFd, 
+                    (char*)g_u8UartBuildBuffer + u32UartReadLen, 
+                    &bufferlen);
+                u32UartReadLen += bufferlen;
+                if (u32UartReadLen >= MSG_BULID_BUFFER_MAXLEN)
+                {
+                    break;
+                }
+                else
+                {
+                    bufferlen = MSG_BULID_BUFFER_MAXLEN - u32UartReadLen;
+                }
             }
+            
+            ZC_Moudlefunc(g_u8UartBuildBuffer, u32UartReadLen);
         }
     }
     
@@ -856,6 +928,8 @@ void QC_Cloudfunc(ULONG which_thread)
                 MSG_SendDataToCloud((u8*)&g_struProtocolController.struCloudConnection);
             }
             ZC_SendBc();
+            
+            QC_SendUartData();
 
             qcom_get_state(&u8WifiStatus);
             if (u8WifiStatus != QCOM_WLAN_LINK_STATE_CONNECTED_STATE)
@@ -901,6 +975,47 @@ void QC_UartInit()
     qcom_set_uart_config((A_CHAR *)"UART0", &com_uart_cfg);
 
 }
+/*************************************************
+* Function: QC_HexToString
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void QC_HexToString(u8 *StringBuf,u8* HexBuf,u8 len)
+{
+  u8 i;
+  u8 *xad;
+
+  // Display the extended address.
+  xad = HexBuf;
+
+  for (i = 0; i < len*2; xad++)
+  {
+    u8 ch;
+    ch = (*xad >> 4) & 0x0F;
+    StringBuf[i++] = ch + (( ch < 10 ) ? '0' : '7');
+    ch = *xad & 0x0F;
+    StringBuf[i++] = ch + (( ch < 10 ) ? '0' : '7');
+  }
+}
+
+
+/*************************************************
+* Function: QC_GetMac
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void QC_GetMac(u8 *pu8Mac)
+{
+    A_UINT8 macAddr[6];
+    qcom_mac_get((A_UINT8 *) & macAddr);
+    QC_HexToString(pu8Mac, macAddr, 6);
+}
 
 /*************************************************
 * Function: QC_Init
@@ -931,6 +1046,7 @@ void QC_Init()
     g_struQcAdapter.pfunStopTimer = QC_StopTimer;
     g_struQcAdapter.pfunWriteFlash = QC_WriteDataToFlash;
     g_struQcAdapter.pfunRest = QC_Rest;
+    g_struQcAdapter.pfunGetMac = QC_GetMac;    
     g_u16TcpMss = 1000;
     PCT_Init(&g_struQcAdapter);
 
@@ -991,15 +1107,19 @@ void QC_Sleep()
     
     PCT_Sleep();
     
+    
     g_struUartBuffer.u32Status = MSG_BUFFER_IDLE;
     
     g_struUartBuffer.u32RecvLen = 0;
-    
+
     qcom_gpio_set_pin_high(4);
+    
 }
-
-
 /******************************* FILE END *****************/
+
+
+
+
 
 
 

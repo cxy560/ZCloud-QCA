@@ -77,7 +77,7 @@ extern "C" {
 
 void ZC_ConfigInitPara(void);
 void ZC_ConfigPara(u8 *pu8Data);
-void ZC_StoreRegisterInfo(u8 *pu8Data);
+void ZC_StoreRegisterInfo(u8 *pu8Data,u8 u8RegisterFlag);
 void ZC_StoreTokenKey(u8 *pu8Data);
 void ZC_StoreConnectionInfo(u8 *pu8Ssid, u8 *pu8Password);
 void ZC_GetStoreInfor(u8 u8Type, u8 **pu8Data);

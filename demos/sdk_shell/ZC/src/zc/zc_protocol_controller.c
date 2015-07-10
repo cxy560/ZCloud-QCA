@@ -851,7 +851,7 @@ void PCT_HandleMoudleMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstruBuffe
     pstruContoller->pu8SendMoudleBuffer = (u8*)&g_struRetxBuffer;
     pstruContoller->u8ReSendMoudleNum = 0;
 
-	  /*Send to Moudle*/
+    /*Send to Moudle*/
     pstruContoller->pstruMoudleFun->pfunSendToMoudle((u8*)pstruMsg, pstruBuffer->u32Len);
 
 
@@ -927,11 +927,7 @@ void PCT_HandleEvent(PTC_ProtocolCon *pstruContoller)
     MSG_Buffer *pstruBuffer;
     ZC_MessageHead *pstruMsg;
     
-    if (PCT_TIMER_INVAILD != pstruContoller->u8SendMoudleTimer)
-    {
-        return;
-    }
-    
+	
     pstruBuffer = (MSG_Buffer *)MSG_PopMsg(&g_struRecvQueue);
     if (NULL == pstruBuffer)
     {
@@ -951,7 +947,14 @@ void PCT_HandleEvent(PTC_ProtocolCon *pstruContoller)
         
         return;
     }
-    
+		
+    if (PCT_TIMER_INVAILD != pstruContoller->u8SendMoudleTimer)
+    {
+        PCT_SendEmptyMsg(pstruMsg->MsgId, ZC_SEC_ALG_AES);
+        PCT_SendErrorMsg(pstruMsg->MsgId, NULL, 0);
+        return;
+    }
+		
     /*when do OTA, does not send empty*/
     switch (pstruMsg->MsgCode)
     {
@@ -975,6 +978,7 @@ void PCT_HandleEvent(PTC_ProtocolCon *pstruContoller)
         case ZC_CODE_OTA_FILE_CHUNK:
         case ZC_CODE_OTA_FILE_END:
         case ZC_CODE_OTA_END:
+        case  ZC_CODE_OTA_CONFIRM:
             PCT_HandleMoudleMsg(pstruContoller, pstruBuffer);
             break;
         case ZC_CODE_TOKEN_SET:

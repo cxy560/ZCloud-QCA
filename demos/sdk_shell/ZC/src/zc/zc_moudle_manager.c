@@ -111,7 +111,53 @@ u32 ZC_DealSessionOpt(ZC_MessageHead *pstruMsg, ZC_OptList *pstruOptList, u8 *pu
     return ZC_RET_OK;
 }
 
-
+/*************************************************
+* Function: ZC_DealSessionOpt
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+u32 ZC_DealExtCode(PTC_ProtocolCon *pstruContoller, u8 *pu8Data)
+{
+    ZC_ExtMessageHead *pstruExtMsg;
+    u8 *pu8Payload = NULL; 
+    pstruExtMsg = (ZC_ExtMessageHead *)pu8Data;
+    pu8Payload = pu8Data + sizeof(ZC_ExtMessageHead);
+    switch(pstruExtMsg->ExtMsgCode)
+    {
+        case ZC_CODE_EXT_REGSITER:
+        {
+            if ((g_struProtocolController.u8MainState >= PCT_STATE_ACCESS_NET) &&
+            (g_struProtocolController.u8MainState < PCT_STATE_DISCONNECT_CLOUD)
+            )
+            {
+                PCT_SendNotifyMsg(ZC_CODE_CLOUD_CONNECTED);                
+                return ZC_RET_OK;
+            }
+            else if (PCT_STATE_DISCONNECT_CLOUD == g_struProtocolController.u8MainState)
+            {
+                PCT_SendNotifyMsg(ZC_CODE_CLOUD_DISCONNECTED);                
+                return ZC_RET_OK;
+            }
+            
+            ZC_StoreRegisterInfo(pu8Payload,1);
+            pstruContoller->u8MainState = PCT_STATE_ACCESS_NET; 
+   
+            if (PCT_TIMER_INVAILD != g_struProtocolController.u8RegisterTimer)
+            {
+                TIMER_StopTimer(g_struProtocolController.u8RegisterTimer);
+                g_struProtocolController.u8RegisterTimer = PCT_TIMER_INVAILD;
+            }
+            break;
+        }
+        default:
+            break;
+    }
+    
+    return ZC_RET_OK;
+}
 
 /*************************************************
 * Function: ZC_RecvDataFromMoudle
@@ -136,10 +182,10 @@ u32 ZC_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
     }
     
     pstruMsg = (ZC_MessageHead *)pu8Data;
-    ZC_TraceData((u8 *)(pstruMsg + 1), u16DataLen);
     if(ZC_RET_ERROR == PCT_CheckCrc(pstruMsg->TotalMsgCrc, (u8 *)(pstruMsg + 1), ZC_HTONS(pstruMsg->Payloadlen)))
     {
-         return ZC_RET_ERROR;
+        ZC_TraceData((u8 *)(pstruMsg + 1), ZC_HTONS(pstruMsg->Payloadlen));
+        return ZC_RET_ERROR;
     }
 
     struOptList.pstruSsession = NULL;
@@ -172,7 +218,7 @@ u32 ZC_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
                 return ZC_RET_OK;
             }
             
-            ZC_StoreRegisterInfo(pu8Payload);
+            ZC_StoreRegisterInfo(pu8Payload,0);
             g_struProtocolController.u8MainState = PCT_STATE_ACCESS_NET; 
             
             if (PCT_TIMER_INVAILD != g_struProtocolController.u8RegisterTimer)
@@ -206,6 +252,9 @@ u32 ZC_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
             break;
         case ZC_CODE_CONFIG:
             ZC_ConfigPara(pu8Payload);
+            break;
+	      case ZC_CODE_EXT:				
+            ZC_DealExtCode(&g_struProtocolController,pu8Payload);
             break;
         default:
             if(PCT_STATE_CONNECT_CLOUD == g_struProtocolController.u8MainState)
