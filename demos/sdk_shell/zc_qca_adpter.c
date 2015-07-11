@@ -975,32 +975,6 @@ void QC_UartInit()
     qcom_set_uart_config((A_CHAR *)"UART0", &com_uart_cfg);
 
 }
-/*************************************************
-* Function: QC_HexToString
-* Description: 
-* Author: cxy 
-* Returns: 
-* Parameter: 
-* History:
-*************************************************/
-void QC_HexToString(u8 *StringBuf,u8* HexBuf,u8 len)
-{
-  u8 i;
-  u8 *xad;
-
-  // Display the extended address.
-  xad = HexBuf;
-
-  for (i = 0; i < len*2; xad++)
-  {
-    u8 ch;
-    ch = (*xad >> 4) & 0x0F;
-    StringBuf[i++] = ch + (( ch < 10 ) ? '0' : '7');
-    ch = *xad & 0x0F;
-    StringBuf[i++] = ch + (( ch < 10 ) ? '0' : '7');
-  }
-}
-
 
 /*************************************************
 * Function: QC_GetMac
@@ -1014,7 +988,7 @@ void QC_GetMac(u8 *pu8Mac)
 {
     A_UINT8 macAddr[6];
     qcom_mac_get((A_UINT8 *) & macAddr);
-    QC_HexToString(pu8Mac, macAddr, 6);
+    ZC_HexToString(pu8Mac, macAddr, 6);
 }
 
 /*************************************************
@@ -1115,11 +1089,7 @@ void QC_Sleep()
     qcom_gpio_set_pin_high(4);
     
 }
+
 /******************************* FILE END *****************/
-
-
-
-
-
 
 

@@ -341,28 +341,23 @@ u32 SEC_Encrypt(ZC_SecHead *pstruSecHead, u8 *pu8CiperBuf, u8 *pu8PlainBuf, u16 
 {
     u32 u32RetVal = ZC_RET_ERROR;
     
-    u8 u8SecFlag;
-    
     if (0 == g_struZcConfigDb.struSwitchInfo.u32SecSwitch)
     {
-        u8SecFlag = ZC_SEC_ALG_NONE;
+        pstruSecHead->u8SecType = ZC_SEC_ALG_NONE;
     }
     else if (2 == g_struZcConfigDb.struSwitchInfo.u32SecSwitch)
     {
         if (ZC_SEC_ALG_RSA == pstruSecHead->u8SecType)
         {
-            u8SecFlag = ZC_SEC_ALG_NONE;    
+            pstruSecHead->u8SecType = ZC_SEC_ALG_NONE;    
         }
         else
         {
-            u8SecFlag = pstruSecHead->u8SecType;
+            pstruSecHead->u8SecType = pstruSecHead->u8SecType;
         }
-    }else
-    {
-        u8SecFlag = pstruSecHead->u8SecType;
     }
     
-    switch (u8SecFlag)
+    switch (pstruSecHead->u8SecType)
     {
         case ZC_SEC_ALG_NONE:
             memcpy(pu8CiperBuf, pu8PlainBuf, ZC_HTONS(pstruSecHead->u16TotalMsg));

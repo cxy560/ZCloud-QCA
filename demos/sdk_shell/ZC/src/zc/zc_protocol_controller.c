@@ -211,7 +211,7 @@ void PCT_SendCloudAccessMsg1(PTC_ProtocolCon *pstruContoller)
     
     struSechead.u8SecType = ZC_SEC_ALG_RSA;
     struSechead.u16TotalMsg = ZC_HTONS(u16Len);
-    
+    struSechead.u8Resver = 0x5A;
     u32RetVal = PCT_SendMsgToCloud(&struSechead, g_u8MsgBuildBuffer);
     
     if (ZC_RET_ERROR == u32RetVal)
@@ -819,6 +819,7 @@ void PCT_HandleOtaEndMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstruBuffe
     {
         PCT_SendAckToCloud(pstruMsg->MsgId);
         PCT_SendNotifyMsg(ZC_CODE_ZOTA_END);
+        PCT_DisConnectCloud(pstruContoller);
     }
 }
 

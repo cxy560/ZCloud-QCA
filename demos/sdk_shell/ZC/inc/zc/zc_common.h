@@ -70,7 +70,7 @@ unsigned short crc16_ccitt(const unsigned char *buf, unsigned int len);
 int rand(void);
 void ZC_ConfigPara(u8 *pu8Data);
 void ZC_Rand(u8 *pu8Rand);
-
+void ZC_HexToString(u8 *StringBuf,u8* HexBuf,u8 len);
 #ifdef __cplusplus
 }
 #endif

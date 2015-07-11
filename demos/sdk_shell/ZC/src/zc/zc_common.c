@@ -75,7 +75,31 @@ void ZC_Rand(u8 *pu8Rand)
     }
 }
 
+/*************************************************
+* Function: ZC_HexToString
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void ZC_HexToString(u8 *StringBuf,u8* HexBuf,u8 len)
+{
+    u8 i;
+    u8 *xad;
 
+    // Display the extended address.
+    xad = HexBuf;
+
+    for (i = 0; i < len*2; xad++)
+    {
+        u8 ch;
+        ch = (*xad >> 4) & 0x0F;
+        StringBuf[i++] = ch + (( ch < 10 ) ? '0' : '7');
+        ch = *xad & 0x0F;
+        StringBuf[i++] = ch + (( ch < 10 ) ? '0' : '7');
+    }
+}
 /******************************* FILE END ***********************************/
 
 
