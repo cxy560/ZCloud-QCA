@@ -953,6 +953,10 @@ void PCT_HandleEvent(PTC_ProtocolCon *pstruContoller)
     {
         PCT_SendEmptyMsg(pstruMsg->MsgId, ZC_SEC_ALG_AES);
         PCT_SendErrorMsg(pstruMsg->MsgId, NULL, 0);
+
+        pstruBuffer->u32Len = 0;
+        pstruBuffer->u8Status = MSG_BUFFER_IDLE;
+       
         return;
     }
 		
