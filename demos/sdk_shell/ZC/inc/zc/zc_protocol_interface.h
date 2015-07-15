@@ -138,6 +138,7 @@ typedef enum
 typedef enum 
 {
     ZC_CODE_EXT_REGSITER = 0,
+    ZC_CODE_EXT_REBOOT = 1,
 }ZC_Ext_MsgCode;
 
 typedef enum 

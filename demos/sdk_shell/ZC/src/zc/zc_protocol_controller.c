@@ -979,7 +979,7 @@ void PCT_HandleEvent(PTC_ProtocolCon *pstruContoller)
         case ZC_CODE_OTA_FILE_CHUNK:
         case ZC_CODE_OTA_FILE_END:
         case ZC_CODE_OTA_END:
-        case  ZC_CODE_OTA_CONFIRM:
+        case ZC_CODE_OTA_CONFIRM:
             PCT_HandleMoudleMsg(pstruContoller, pstruBuffer);
             break;
         case ZC_CODE_TOKEN_SET:

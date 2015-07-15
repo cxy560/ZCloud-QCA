@@ -152,6 +152,11 @@ u32 ZC_DealExtCode(PTC_ProtocolCon *pstruContoller, u8 *pu8Data)
             }
             break;
         }
+        case ZC_CODE_EXT_REBOOT:
+        {
+            pstruContoller->pstruMoudleFun->pfunReboot();
+            break;
+        }
         default:
             break;
     }
@@ -253,7 +258,7 @@ u32 ZC_RecvDataFromMoudle(u8 *pu8Data, u16 u16DataLen)
         case ZC_CODE_CONFIG:
             ZC_ConfigPara(pu8Payload);
             break;
-	      case ZC_CODE_EXT:				
+        case ZC_CODE_EXT:				
             ZC_DealExtCode(&g_struProtocolController,pu8Payload);
             break;
         default:

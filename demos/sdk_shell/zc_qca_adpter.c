@@ -404,7 +404,7 @@ void QC_SnifferSuccess(char *ssid, char *password, unsigned char response, tSucc
 void QC_Rest(void)
 {
     g_struZcConfigDb.struConnection.u32MagicFlag = 0xFFFFFFFF;
-    
+    g_struZcConfigDb.struSwitchInfo.u32ServerAddrConfig = 0;
     QC_WriteDataToFlash((u8*)&g_struZcConfigDb, sizeof(ZC_ConfigDB));
 
     QC_BlinkLight(5);
@@ -412,6 +412,20 @@ void QC_Rest(void)
     
     qcom_sys_reset();
 }
+
+/*************************************************
+* Function: QC_Reboot
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void QC_Reboot(void)
+{   
+    qcom_sys_reset();
+}
+
 /*************************************************
 * Function: QC_SendTcpData
 * Description: 
@@ -438,6 +452,81 @@ void QC_SendUdpData(u32 u32Fd, u8 *pu8Data, u16 u16DataLen, ZC_SendParam *pstruP
         (struct sockaddr *)pstruParam->pu8AddrPara,
         sizeof(struct sockaddr_in)); 
 }
+
+
+/*************************************************
+* Function: QC_CloudUartfunc
+* Description: 
+* Author: cxy 
+* Returns: 
+* Parameter: 
+* History:
+*************************************************/
+void QC_CloudUartfunc() 
+{
+    q_fd_set fdread;
+    u32 u32MaxFd = 0;
+    struct timeval timeout; 
+    int fd_act = 0;
+    u32 u32UartReadLen;
+    A_UINT32 uartrecv = MSG_BULID_BUFFER_MAXLEN;
+    A_UINT32 bufferlen = MSG_BULID_BUFFER_MAXLEN;
+
+    ZC_Printf("start uart\n");
+    while (1)
+    {
+        timeout.tv_sec= 0; 
+        timeout.tv_usec= 100; 
+        
+        FD_ZERO(&fdread);
+        
+        if (PCT_INVAILD_SOCKET != g_u32UartFd)
+        {
+            FD_SET(g_u32UartFd, &fdread);
+            u32MaxFd = u32MaxFd > g_u32UartFd ? u32MaxFd : g_u32UartFd;
+        }
+        
+        fd_act = 0;
+        fd_act = qcom_select(u32MaxFd + 1, &fdread, NULL, NULL, &timeout);
+        
+        if (0 == fd_act)
+        {
+            continue;
+        }
+        
+        
+        if (PCT_INVAILD_SOCKET != g_u32UartFd)
+        {
+            if (FD_ISSET(g_u32UartFd, &fdread))
+            {
+                qcom_thread_msleep(100);
+                bufferlen = MSG_BULID_BUFFER_MAXLEN;
+                uartrecv = MSG_BULID_BUFFER_MAXLEN;
+                u32UartReadLen = 0;
+                while(uartrecv > 0)
+                {
+                    uartrecv = qcom_uart_read(g_u32UartFd, 
+                        (char*)g_u8UartBuildBuffer + u32UartReadLen, 
+                        &bufferlen);
+                    u32UartReadLen += bufferlen;
+                    if (u32UartReadLen >= MSG_BULID_BUFFER_MAXLEN)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        bufferlen = MSG_BULID_BUFFER_MAXLEN - u32UartReadLen;
+                    }
+                }
+                
+                ZC_Moudlefunc(g_u8UartBuildBuffer, u32UartReadLen);
+            }
+        }
+
+        QC_SendUartData();
+    }
+}
+
 
 /*************************************************
 * Function: QC_CloudRecvfunc
@@ -476,12 +565,14 @@ void QC_CloudRecvfunc()
 
     FD_SET(g_Bcfd, &fdread);
     u32MaxFd = u32MaxFd > g_Bcfd ? u32MaxFd : g_Bcfd;
+    #if 0
     if (PCT_INVAILD_SOCKET != g_u32UartFd)
     {
         FD_SET(g_u32UartFd, &fdread);
         u32MaxFd = u32MaxFd > g_u32UartFd ? u32MaxFd : g_u32UartFd;
         u32ActiveFlag = 1;
     }
+    #endif
     if (PCT_INVAILD_SOCKET != g_struProtocolController.struClientConnection.u32Socket)
     {
         FD_SET(g_struProtocolController.struClientConnection.u32Socket, &fdread);
@@ -1020,7 +1111,8 @@ void QC_Init()
     g_struQcAdapter.pfunStopTimer = QC_StopTimer;
     g_struQcAdapter.pfunWriteFlash = QC_WriteDataToFlash;
     g_struQcAdapter.pfunRest = QC_Rest;
-    g_struQcAdapter.pfunGetMac = QC_GetMac;    
+    g_struQcAdapter.pfunGetMac = QC_GetMac;  
+    g_struQcAdapter.pfunReboot= QC_Reboot;
     g_u16TcpMss = 1000;
     PCT_Init(&g_struQcAdapter);
 
@@ -1091,5 +1183,7 @@ void QC_Sleep()
 }
 
 /******************************* FILE END *****************/
+
+
 
 

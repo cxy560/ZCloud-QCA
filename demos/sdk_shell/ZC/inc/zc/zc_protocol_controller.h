@@ -96,6 +96,7 @@ typedef u32 (*pFunSetTimer)(u8 u8Type, u32 Interval, u8 *pu8Index);
 typedef void (*pFunStopTimer)(u8 u8TimerIndex);
 typedef void (*pFunRest)(void);
 typedef void (*pFunGetMac)(u8 *pu8Mac);
+typedef void (*pFunReboot)();
 
 typedef struct
 {
@@ -108,6 +109,7 @@ typedef struct
     pFunFirmwareUpdateFinish    pfunUpdateFinish;    
     pFunSendDataToMoudle        pfunSendToMoudle;
     pFunRest                    pfunRest;
+    pFunReboot                  pfunReboot;
     
     pFunSetTimer                pfunSetTimer;
     pFunStopTimer               pfunStopTimer;
