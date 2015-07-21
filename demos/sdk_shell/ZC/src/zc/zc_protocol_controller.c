@@ -820,6 +820,7 @@ void PCT_HandleOtaEndMsg(PTC_ProtocolCon *pstruContoller, MSG_Buffer *pstruBuffe
         PCT_SendAckToCloud(pstruMsg->MsgId);
         PCT_SendNotifyMsg(ZC_CODE_ZOTA_END);
         PCT_DisConnectCloud(pstruContoller);
+        pstruContoller->pstruMoudleFun->pfunReboot();
     }
 }
 

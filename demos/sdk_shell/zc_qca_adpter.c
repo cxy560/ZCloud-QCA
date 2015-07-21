@@ -422,7 +422,9 @@ void QC_Rest(void)
 * History:
 *************************************************/
 void QC_Reboot(void)
-{   
+{
+    qcom_thread_msleep(500);
+
     qcom_sys_reset();
 }
 

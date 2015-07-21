@@ -360,9 +360,9 @@ u32 ZC_AssemblePkt(u8 *pu8Data, u32 u32DataLen, u32 *pu32LeftLen)
                 pu8Data, 
                 (u32MsgLen - g_struUartBuffer.u32RecvLen));
 
+            *pu32LeftLen = u32DataLen + g_struUartBuffer.u32RecvLen - u32MsgLen;            
             g_struUartBuffer.u32Status = MSG_BUFFER_FULL;
             g_struUartBuffer.u32RecvLen = u32MsgLen;
-           *pu32LeftLen = u32DataLen + g_struUartBuffer.u32RecvLen - u32MsgLen;            
         }
         else
         {
@@ -414,9 +414,9 @@ u32 ZC_AssemblePkt(u8 *pu8Data, u32 u32DataLen, u32 *pu32LeftLen)
                 memcpy((g_struUartBuffer.u8UartBuffer + g_struUartBuffer.u32RecvLen), 
                     pu8Data,
                     u32MsgLen - g_struUartBuffer.u32RecvLen);
+                *pu32LeftLen = u32DataLen + g_struUartBuffer.u32RecvLen - u32MsgLen;            
                 g_struUartBuffer.u32Status = MSG_BUFFER_FULL;
                 g_struUartBuffer.u32RecvLen = u32MsgLen;
-                *pu32LeftLen = u32DataLen + g_struUartBuffer.u32RecvLen - u32MsgLen;            
             }
             else
             {
